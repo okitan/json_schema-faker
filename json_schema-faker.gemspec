@@ -22,6 +22,7 @@ Gem::Specification.new do |spec|
 
   # test
   spec.add_development_dependency "rspec"
+  spec.add_development_dependency "guard-rspec"
 
   # debug
   spec.add_development_dependency "pry"

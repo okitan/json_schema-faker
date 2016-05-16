@@ -49,7 +49,11 @@ module JsonSchema
       when "boolean"
       when "integer", "number"
         # http://json-schema.org/latest/json-schema-validation.html#anchor13
-        0
+        # TODO: multiple_of, exclusive_max, exclusive_min
+        min = schema.min || 0
+        max = schema.max || min
+
+        max
       when "null"
         nil
       when "object"

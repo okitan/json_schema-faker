@@ -70,6 +70,7 @@ module JsonSchema
       case schema.type.first
       when "array"
       when "boolean"
+        true
       when "integer", "number"
         generate_for_number(schema, hint: nil)
       when "null"

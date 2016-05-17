@@ -32,6 +32,8 @@ RSpec.describe JsonSchema::Faker do
     it_behaves_like "generating data from properties which passes validation" do
       let(:properties) do
         {
+          "null"                 => { "type" => "null" },
+          "boolean"              => { "type" => "boolean" },
           "integer"              => { "type" => "integer" },
           "integer_with_mininum" => { "type" => "integer", "minimum" => 10 },
           "integer_with_maximum" => { "type" => "integer", "maximum" => -10 },

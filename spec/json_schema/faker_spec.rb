@@ -41,6 +41,11 @@ RSpec.describe JsonSchema::Faker do
           "multiple_with_maximum" => { "type" => "integer", "multipleOf" => 3, "minimum" => -4 },
           "multiple_with_minmax"  => { "type" => "integer", "multipleOf" => 3, "minimum" => 2, "maximum" => 4 },
           # TODO: add test about exclusiveMinimum, exclusiveMaximum
+          "string"              => { "type" => "string" },
+          "string_with_min"     => { "type" => "string", "minLength" => 1 },
+          "string_with_max"     => { "type" => "string", "maxLength" => 255 },
+          "string_with_minmax"  => { "type" => "string", "minLength" => 254, "maxLength" => 255 },
+          "string_with_pattern" => { "type" => "string", "pattern" => "^\w+$" },
         }
       end
     end

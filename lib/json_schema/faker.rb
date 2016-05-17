@@ -1,5 +1,7 @@
 require "json_schema"
 
+require "pxeger"
+
 module JsonSchema
   class Faker
     module Configuration
@@ -74,6 +76,7 @@ module JsonSchema
         nil
       when "object"
       when "string"
+        generate_for_string(schema, hint: hint)
       else
         raise "unknown type for #{schema.inspect_schema}"
       end
@@ -99,6 +102,20 @@ module JsonSchema
         (min / delta + max / delta) / 2 * delta
       else
         (min + max) / 2.0
+      end
+    end
+
+    def generate_for_string(schema, hint: nil)
+      # http://json-schema.org/latest/json-schema-validation.html#anchor25
+      if schema.pattern
+        Pxeger.new(schema.pattern).generate
+      else
+        min = schema.min_length || 0
+        max = schema.max_length || min
+
+        length = (min + max) / 2
+
+        "a" * length
       end
     end
   end

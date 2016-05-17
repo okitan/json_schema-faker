@@ -2,6 +2,12 @@ require "json_schema"
 
 module JsonSchema
   class Faker
+    module Configuration
+      attr_accessor :logger
+
+      module_function :logger, :logger=
+    end
+
     # TODO:
     # strategy to use for faker
     def initialize(schema, options = {})
@@ -16,7 +22,7 @@ module JsonSchema
 
     protected
     def _generate(schema, hint: nil, position:)
-      warn position
+      Configuration.logger.debug "current position: #{position}" if Configuration.logger
 
       # TODO: should support the combinations of them
       # http://json-schema.org/latest/json-schema-validation.html#anchor75
@@ -41,7 +47,10 @@ module JsonSchema
     end
 
     def generate_by_type(schema, hint: nil, position:)
-      warn "generate by type for #{position}"
+      if Configuration.logger
+        Configuration.logger.info "generate type at #{position}"
+        Configuration.logger.debug schema.inspect_schema
+      end
 
       # http://json-schema.org/latest/json-schema-core.html#anchor8
       case schema.type.first

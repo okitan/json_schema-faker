@@ -1,7 +1,18 @@
 require "bundler/setup"
 require "json_schema/faker"
 
-require "pry"
+if ENV["DEBUG"]
+  require "pry"
+
+  require "logger"
+  logger = Logger.new($stderr)
+  logger.level = case ENV["DEBUG"]
+                 when "1"; Logger::INFO
+                 when "2"; Logger::DEBUG
+                 else      Logger::WARN
+                 end
+  JsonSchema::Faker::Configuration.logger = logger
+end
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

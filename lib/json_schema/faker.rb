@@ -27,7 +27,10 @@ module JsonSchema
       Configuration.logger.debug "current position: #{position}" if Configuration.logger
 
       # TODO: should support the combinations of them
+      # TODO: support pattern properties
       # http://json-schema.org/latest/json-schema-validation.html#anchor75
+      # Notes:
+      # one_of, any_of, all_of, properties and type is given default and never be nil
       if    !schema.one_of.empty?
         generate_for_one_of(schema, hint: hint, position: position)
       elsif !schema.any_of.empty?
@@ -37,7 +40,8 @@ module JsonSchema
       elsif !schema.properties.empty?
         generate_for_properties(schema, hint: hint, position: position)
       elsif schema.enum
-      elsif schema.type
+        generate_by_enum(schema, hint: hint, position: position)
+      elsif !schema.type.empty?
         generate_by_type(schema, position: position)
       elsif schema.not
       else
@@ -60,15 +64,24 @@ module JsonSchema
       end
     end
 
+    def generate_by_enum(schema, hint: nil, position:)
+      if Configuration.logger
+        Configuration.logger.info "generate by enum at #{position}"
+        Configuration.logger.debug schema.inspect_schema
+      end
+      schema.enum.first
+    end
+
     def generate_by_type(schema, hint: nil, position:)
       if Configuration.logger
-        Configuration.logger.info "generate type at #{position}"
+        Configuration.logger.info "generate by type at #{position}"
         Configuration.logger.debug schema.inspect_schema
       end
 
       # http://json-schema.org/latest/json-schema-core.html#anchor8
       case schema.type.first
       when "array"
+        generate_for_array(schema, hint: nil, position: position)
       when "boolean"
         true
       when "integer", "number"
@@ -80,6 +93,26 @@ module JsonSchema
         generate_for_string(schema, hint: hint)
       else
         raise "unknown type for #{schema.inspect_schema}"
+      end
+    end
+
+    def generate_for_array(schema, hint: nil, position:)
+      #binding.pry
+      # http://json-schema.org/latest/json-schema-validation.html#anchor36
+      # additionalItems items maxItems minItems uniqueItems
+      length = schema.min_items || 0
+
+      # if "items" is not present, or its value is an object, validation of the instance always succeeds, regardless of the value of "additionalItems";
+      # if the value of "additionalItems" is boolean value true or an object, validation of the instance always succeeds;
+      item = if (schema.items.nil? || schema.items.is_a?(JsonSchema::Schema)) || ( schema.additional_items === true || schema.additional_items.is_a?(JsonSchema::Schema))
+        length.times.map.with_index {|i| i }
+      else # in case schema.items is array and schema.additional_items is true
+        # if the value of "additionalItems" is boolean value false and the value of "items" is an array
+        # the instance is valid if its size is less than, or equal to, the size of "items".
+        raise "#{position}: item length(#{schema.items.length} is shorter than minItems(#{schema.min_items}))" unless schema.items.length <= length
+
+        # TODO: consider unique items
+        length.times.map.with_index {|i| _generate(schema.items[i], position: position + "[#{i}]") }
       end
     end
 
@@ -111,11 +144,7 @@ module JsonSchema
       if schema.pattern
         Pxeger.new(schema.pattern).generate
       else
-        min = schema.min_length || 0
-        max = schema.max_length || min
-
-        length = (min + max) / 2
-
+        length = schema.min_length || 0
         "a" * length
       end
     end

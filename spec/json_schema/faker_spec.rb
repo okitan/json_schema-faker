@@ -32,10 +32,18 @@ RSpec.describe JsonSchema::Faker do
     it_behaves_like "generating data from properties which passes validation" do
       let(:properties) do
         {
-          "null"                 => { "type" => "null" },
+          "an_object"            => {},
+          "array"                   => { "type" => "array" },
+          "array_without_items"     => { "type" => "array", "minItems" => 1 },
+          "array_with_length"       => { "type" => "array", "minItems" => 1 },
+          "array_everything_ok"     => { "type" => "array", "minItems" => 1, "items" => [ {} ], "additionalItems" => true },
+          "array_everything_ok2"    => { "type" => "array", "minItems" => 1, "items" => [ {} ], "additionalItems" => {} },
+          "array_with_object_items" => { "type" => "array", "minItems" => 1, "items" => {},     "additionalItems" => false },
+          "array_with_items"        => { "type" => "array", "minItems" => 1, "items" => [ {} ],   "additionalItems" => false },
+          "array_with_items2"       => { "type" => "array", "minItems" => 2, "items" => [ { "enum" => [ 1 ] }, { "type" => "string" } ], "additionalItems" => false },
           "boolean"              => { "type" => "boolean" },
           "integer"              => { "type" => "integer" },
-          "integer_with_mininum" => { "type" => "integer", "minimum" => 10 },
+          "integer_with_minimum" => { "type" => "integer", "minimum" => 10 },
           "integer_with_maximum" => { "type" => "integer", "maximum" => -10 },
           "integer_with_minmax"  => { "type" => "integer", "minimum" => 2, "maximum" => 3 },
           "multiple"              => { "type" => "integer", "multipleOf" => 3 },
@@ -43,6 +51,9 @@ RSpec.describe JsonSchema::Faker do
           "multiple_with_maximum" => { "type" => "integer", "multipleOf" => 3, "minimum" => -4 },
           "multiple_with_minmax"  => { "type" => "integer", "multipleOf" => 3, "minimum" => 2, "maximum" => 4 },
           # TODO: add test about exclusiveMinimum, exclusiveMaximum
+          "number"              => { "type" => "number" },
+          "number_with_minmax"  => { "type" => "number", "minimum" => 2, "maximum" => 3, "exclusiveMinimum" => true, "exclusiveMaximum" => true },
+          "null"                => { "type" => "null" },
           "string"              => { "type" => "string" },
           "string_with_min"     => { "type" => "string", "minLength" => 1 },
           "string_with_max"     => { "type" => "string", "maxLength" => 255 },

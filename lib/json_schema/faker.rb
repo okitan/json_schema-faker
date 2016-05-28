@@ -26,6 +26,16 @@ module JsonSchema
     def _generate(schema, hint: nil, position:)
       Configuration.logger.debug "current position: #{position}" if Configuration.logger
 
+      raise "here comes nil for schema at #{position}" unless schema
+
+      return schema.default if schema.default
+
+      if schema.not
+        # TODO:
+        # 1st calculate not
+        # 2nd generate schema without not with hint not
+      end
+
       # TODO: should support the combinations of them
       # TODO: support pattern properties
       # http://json-schema.org/latest/json-schema-validation.html#anchor75
@@ -38,12 +48,11 @@ module JsonSchema
       elsif !schema.all_of.empty?
         generate_for_all_of(schema, hint: hint, position: position)
       elsif !schema.properties.empty?
-        generate_for_properties(schema, hint: hint, position: position)
+        generate_for_object(schema, hint: hint, position: position)
       elsif schema.enum
         generate_by_enum(schema, hint: hint, position: position)
       elsif !schema.type.empty?
         generate_by_type(schema, position: position)
-      elsif schema.not
       else
         {} # consider as "type": "object"
       end
@@ -56,12 +65,40 @@ module JsonSchema
     end
 
     def generate_for_all_of(schema, hint: nil, position:)
+      # TODO: merge schemas
     end
 
-    def generate_for_properties(schema, hint: nil, position:)
-      schema.properties.each.with_object({}) do |(key, value), hash|
-        hash[key] = _generate(value, hint: nil, position: "#{position}/#{key}") # TODO: pass hint
+    def generate_for_object(schema, hint: nil, position:)
+      # http://json-schema.org/latest/json-schema-validation.html#anchor53
+      if schema.required
+        keys   = schema.required
+        required_length = schema.min_properties || keys.length
+
+        object = keys.each.with_object({}) do |key, hash|
+          hash[key] = _generate(schema.properties[key], hint: nil, position: "#{position}/#{key}") # TODO: pass hint
+        end
+      else
+        required_length = schema.min_properties || schema.max_properties || 0
+
+        object = (schema.properties || {}).keys.first(required_length).each.with_object({}) do |key, hash|
+          hash[key] = _generate(schema.properties[key], hint: nil, position: "#{position}/#{key}") # TODO: pass hint
+        end
       end
+
+      # if length is not enough
+      if schema.additional_properties === false
+        (required_length - object.keys.length).times.each.with_object(object) do |i, hash|
+          name = Pxeger.new(schema.pattern_properties.keys.first).generate
+          hash[name] = _generate(schema.pattern_properties.values.first, hint: nil, position: "#{position}/#{name}") # TODO: pass hint
+        end
+      else
+        # FIXME: key confilct with properties
+        (required_length - object.keys.length).times.each.with_object(object) do |i, hash|
+          hash[i.to_s] = i
+        end
+      end
+
+      # TODO: consider dependency
     end
 
     def generate_by_enum(schema, hint: nil, position:)
@@ -79,6 +116,7 @@ module JsonSchema
       end
 
       # http://json-schema.org/latest/json-schema-core.html#anchor8
+      # TODO: use include? than first
       case schema.type.first
       when "array"
         generate_for_array(schema, hint: nil, position: position)
@@ -89,6 +127,8 @@ module JsonSchema
       when "null"
         nil
       when "object"
+        # here comes object without properties
+        generate_for_object(schema, hint: hint, position: position)
       when "string"
         generate_for_string(schema, hint: hint)
       else
@@ -97,7 +137,6 @@ module JsonSchema
     end
 
     def generate_for_array(schema, hint: nil, position:)
-      #binding.pry
       # http://json-schema.org/latest/json-schema-validation.html#anchor36
       # additionalItems items maxItems minItems uniqueItems
       length = schema.min_items || 0

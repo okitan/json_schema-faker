@@ -32,6 +32,7 @@ RSpec.describe JsonSchema::Faker do
     it_behaves_like "generating data from properties which passes validation" do
       let(:properties) do
         {
+          # array
           "array"                   => { "type" => "array" },
           "array_without_items"     => { "type" => "array", "minItems" => 1 },
           "array_with_length"       => { "type" => "array", "minItems" => 1 },
@@ -58,15 +59,19 @@ RSpec.describe JsonSchema::Faker do
           "number_with_minmax"  => { "type" => "number", "minimum" => 2, "maximum" => 3, "exclusiveMinimum" => true, "exclusiveMaximum" => true },
           # null
           "null"                => { "type" => "null" },
-          # object
+          # object (object with properties is done in other context
           "object"              => { "type" => "object" },
           "empty_object"        => {},
-          # object with properties is done in other context
+          # string
           "string"              => { "type" => "string" },
           "string_with_min"     => { "type" => "string", "minLength" => 1 },
           "string_with_max"     => { "type" => "string", "maxLength" => 255 },
           "string_with_minmax"  => { "type" => "string", "minLength" => 254, "maxLength" => 255 },
           "string_with_pattern" => { "type" => "string", "pattern" => "^\w+$" },
+          # oneOf
+          "one_of" => { "oneOf" => [ { "type" => "string" } ] },
+          # anyOf
+          "any_of" => { "anyOf" => [ { "type" => "string" } ] },
         }
       end
     end

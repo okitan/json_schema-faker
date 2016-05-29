@@ -59,9 +59,11 @@ module JsonSchema
     end
 
     def generate_for_one_of(schema, hint: nil, position:)
+      _generate(schema.one_of.first, hint: nil, position: "position/one_of[0]")
     end
 
     def generate_for_any_of(schema, hint: nil, position:)
+      _generate(schema.any_of.first, hint: nil, position: "position/any_of[0]")
     end
 
     def generate_for_all_of(schema, hint: nil, position:)

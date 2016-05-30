@@ -72,6 +72,20 @@ RSpec.describe JsonSchema::Faker do
           "one_of" => { "oneOf" => [ { "type" => "string" } ] },
           # anyOf
           "any_of" => { "anyOf" => [ { "type" => "string" } ] },
+          # allOf
+          "all_of" => { "allOf" => [
+            { "properties" => { "a" => { "enum" => [ "a", "b" ] }, "b" => { "enum" => [ "b" ] } }, "required" => %w[ a ] },
+            { "required" => %w[ b ] }, # merge required
+            { "properties" => { "c" => { "enum" => [ "c" ] } }, "required" => %w[ c ] }, # additional property
+          ]},
+          "all_of_min" => { "allOf" => [
+            { "type" => "integer" },
+            { "minimum" => 10000 },
+          ]},
+          "all_of_max" => { "allOf" => [
+            { "type" => "integer" },
+            { "maximum" => -10000 },
+          ]},
         }
       end
     end

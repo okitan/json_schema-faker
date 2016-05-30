@@ -67,7 +67,59 @@ module JsonSchema
     end
 
     def generate_for_all_of(schema, hint: nil, position:)
-      # TODO: merge schemas
+      # deep_merge all_of
+      merged_schema = JsonSchema::Schema.new
+      merged_schema.copy_from(schema.all_of.first)
+
+      schema.all_of[1..-1].each do |sub_schema|
+        # attr not supported now
+        # any_of:     too difficult...
+        # enum/items: TODO: just get and of array
+        # not:        too difficult (if `not` is not wrapped by all_of wrap it?)
+        # multiple_of TODO: least common multiple
+        # pattern:    too difficult...
+        # format      TODO: just override
+
+        # array properties
+        %i[ type one_of all_of ].each do |attr|
+          merged_schema.__send__("#{attr}=", merged_schema.__send__(attr) + sub_schema.__send__(attr))
+        end
+        merged_schema.required = (merged_schema.required ? merged_schema.required + sub_schema.required : sub_schema.required) if sub_schema.required
+
+        # object properties
+        # XXX: key conflict
+        %i[ properties pattern_properties dependencies ].each do |attr|
+          merged_schema.__send__("#{attr}=", merged_schema.__send__(attr).merge(sub_schema.__send__(attr)))
+        end
+
+        # override to stronger validation
+        %i[ additional_items additional_properties ].each do |attr|
+          merged_schema.__send__("#{attr}=", false) unless merged_schema.__send__(attr) && sub_schema.__send__(attr)
+        end
+        %i[ min_exclusive max_exclusive unique_items ].each do |attr|
+          merged_schema.__send__("#{attr}=", merged_schema.__send__(attr) & sub_schema.__send__(attr))
+        end
+        %i[ min min_length min_properties ].each do |attr|
+          if sub_schema.__send__(attr)
+            if merged_schema.__send__(attr)
+              merged_schema.__send__("#{attr}=", sub_schema.__send__(attr)) if sub_schema.__send__(attr) < merged_schema.__send__(attr)
+            else
+              merged_schema.__send__("#{attr}=", sub_schema.__send__(attr))
+            end
+          end
+        end
+        %i[ max max_length max_properties ].each do |attr|
+          if sub_schema.__send__(attr)
+            if merged_schema.__send__(attr)
+              merged_schema.__send__("#{attr}=", sub_schema.__send__(attr)) if sub_schema.__send__(attr) > merged_schema.__send__(attr)
+            else
+              merged_schema.__send__("#{attr}=", sub_schema.__send__(attr))
+            end
+          end
+        end
+      end
+
+      _generate(merged_schema, hint: nil, position: "position/all_of")
     end
 
     def generate_for_object(schema, hint: nil, position:)
@@ -182,6 +234,7 @@ module JsonSchema
 
     def generate_for_string(schema, hint: nil)
       # http://json-schema.org/latest/json-schema-validation.html#anchor25
+      # TODO: support format
       if schema.pattern
         Pxeger.new(schema.pattern).generate
       else

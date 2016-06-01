@@ -295,6 +295,8 @@ module JsonSchema
           end
         end
       end
+
+      a
     end
   end
 end

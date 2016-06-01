@@ -39,6 +39,9 @@ Note: It is too difficult to correspond to complex schema.
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/json_schema-faker. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
+### Run tests
+
+before running `rake spec`, run `git submodule init && git submodule update`
 
 ## License
 

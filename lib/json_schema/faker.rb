@@ -31,13 +31,10 @@ module JsonSchema
       return schema.default if schema.default
 
       if schema.not
-        # TODO:
-        # 1st calculate not
-        # 2nd generate schema without not with hint not
+        # too difficult
       end
 
       # TODO: should support the combinations of them
-      # TODO: support pattern properties
       # http://json-schema.org/latest/json-schema-validation.html#anchor75
       # Notes:
       # one_of, any_of, all_of, properties and type is given default and never be nil
@@ -152,7 +149,22 @@ module JsonSchema
         end
       end
 
-      # TODO: consider dependency
+      # consider dependency
+      depended_keys = object.keys & schema.dependencies.keys
+
+      # FIXME: circular dependency is not supported
+      depended_keys.each.with_object(object) do |key, hash|
+        dependency = schema.dependencies[key]
+
+        if dependency.is_a?(JsonSchema::Schema)
+          # too difficult we just merge
+          hash.update(_generate(schema.dependencies[key], hint: nil, position: "#{position}/dependencies/#{key}"))
+        else
+          dependency.each do |additional_key|
+            object[additional_key] = _generate(schema.properties[additional_key], hint: nil, position: "#{position}/dependencies/#{key}/#{additional_key}") unless object.has_key?(additional_key)
+          end
+        end
+      end
     end
 
     def generate_by_enum(schema, hint: nil, position:)

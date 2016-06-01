@@ -107,6 +107,10 @@ RSpec.describe JsonSchema::Faker do
                                                "patternProperties" => { "\\d+" => { "type" => "integer" } }, "additionalProperties" => false },
             "properties_with_pattern"     => { "properties" => common_properties,                        "minProperties" => 2,
                                                "patternProperties" => { "\\d+" => { "type" => "integer" } }, "additionalProperties" => false },
+            "with_schema_dependency"      => { "properties" => common_properties, "required" => %w[ a ],
+                                               "dependencies" => { "a" => { "properties" => { "c" => { "enum" => [ "c" ] } }, "required" => %w[ c ] } } },
+            "with_property_dependency"    => { "properties" => common_properties, "required" => %w[ a ],
+                                               "dependencies" => { "a" => [ "b" ] } },
           }
         end
       end

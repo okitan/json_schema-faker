@@ -53,14 +53,12 @@ module JsonSchema
         generate_for_any_of(schema, hint: hint, position: position)
       elsif !schema.all_of.empty?
         generate_for_all_of(schema, hint: hint, position: position)
-      elsif !schema.properties.empty? || !schema.pattern_properties.empty?
-        generate_for_object(schema, hint: hint, position: position)
       elsif schema.enum
         generate_by_enum(schema, hint: hint, position: position)
       elsif !schema.type.empty?
         generate_by_type(schema, position: position)
-      else
-        {} # consider as "type": "object"
+      else # consider as object
+        generate_for_object(schema, hint: hint, position: position)
       end
     end
 

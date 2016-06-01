@@ -1,8 +1,4 @@
-# JsonSchema::Faker
-
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/json_schema/faker`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+# JsonSchema::Faker [![Build Status](https://travis-ci.org/okitan/json_schema-faker.svg?branch=master)](https://travis-ci.org/okitan/json_schema-faker)
 
 ## Installation
 
@@ -22,13 +18,22 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```ruby
+require "json_schema/faker"
 
-## Development
+raw_schema = {
+  "id" => "https://example.com/schema.json",
+  "$schema"    => "http://json-schema.org/draft-04/schema#",
+  "properties" => { "a" => { "enum" => [ "e", "n", "u", "m" ] } },
+  "required"   => [ "a" ],
+}
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+schema = JsonSchema::Schema.parse(raw_schema)
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+JsonSchema::Faker.new(schema).generate #=> { "a" => "e" }
+```
+
+Note: It is too difficult to correspond to complex schema.
 
 ## Contributing
 
@@ -38,4 +43,3 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/[USERN
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
-

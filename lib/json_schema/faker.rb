@@ -73,9 +73,11 @@ module JsonSchema
     def generate_for_all_of(schema, hint: nil, position:)
       # deep_merge all_of
       merged_schema = JsonSchema::Schema.new
-      merged_schema.copy_from(schema.all_of.first)
+      merged_schema.copy_from(schema)
 
-      schema.all_of[1..-1].each do |sub_schema|
+      merged_schema.all_of = []
+
+      schema.all_of.each do |sub_schema|
         # attr not supported now
         # any_of:     too difficult...
         # enum/items: TODO: just get and of array

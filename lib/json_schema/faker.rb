@@ -63,11 +63,22 @@ module JsonSchema
     end
 
     def generate_for_one_of(schema, hint: nil, position:)
-      _generate(schema.one_of.first, hint: hint, position: "position/one_of[0]")
+      merged_schema = JsonSchema::Schema.new
+      merged_schema.copy_from(schema)
+
+      merged_schema.one_of = []
+
+      # TODO: treat rest as not
+      _generate(merge_schema(merged_schema, schema.one_of.first), hint: hint, position: "position/one_of[0]")
     end
 
     def generate_for_any_of(schema, hint: nil, position:)
-      _generate(schema.any_of.first, hint: hint, position: "position/any_of[0]")
+      merged_schema = JsonSchema::Schema.new
+      merged_schema.copy_from(schema)
+
+      merged_schema.any_of = []
+
+      _generate(merge_schema(merged_schema, schema.any_of.first), hint: hint, position: "position/any_of[0]")
     end
 
     def generate_for_all_of(schema, hint: nil, position:)
@@ -78,51 +89,7 @@ module JsonSchema
       merged_schema.all_of = []
 
       schema.all_of.each do |sub_schema|
-        # attr not supported now
-        # any_of:     too difficult...
-        # enum/items: TODO: just get and of array
-        # not:        too difficult (if `not` is not wrapped by all_of wrap it?)
-        # multiple_of TODO: least common multiple
-        # pattern:    too difficult...
-        # format      TODO: just override
-
-        # array properties
-        %i[ type one_of all_of ].each do |attr|
-          merged_schema.__send__("#{attr}=", merged_schema.__send__(attr) + sub_schema.__send__(attr))
-        end
-        merged_schema.required = (merged_schema.required ? merged_schema.required + sub_schema.required : sub_schema.required) if sub_schema.required
-
-        # object properties
-        # XXX: key conflict
-        %i[ properties pattern_properties dependencies ].each do |attr|
-          merged_schema.__send__("#{attr}=", merged_schema.__send__(attr).merge(sub_schema.__send__(attr)))
-        end
-
-        # override to stronger validation
-        %i[ additional_items additional_properties ].each do |attr|
-          merged_schema.__send__("#{attr}=", false) unless merged_schema.__send__(attr) && sub_schema.__send__(attr)
-        end
-        %i[ min_exclusive max_exclusive unique_items ].each do |attr|
-          merged_schema.__send__("#{attr}=", merged_schema.__send__(attr) & sub_schema.__send__(attr))
-        end
-        %i[ min min_length min_properties ].each do |attr|
-          if sub_schema.__send__(attr)
-            if merged_schema.__send__(attr)
-              merged_schema.__send__("#{attr}=", sub_schema.__send__(attr)) if sub_schema.__send__(attr) < merged_schema.__send__(attr)
-            else
-              merged_schema.__send__("#{attr}=", sub_schema.__send__(attr))
-            end
-          end
-        end
-        %i[ max max_length max_properties ].each do |attr|
-          if sub_schema.__send__(attr)
-            if merged_schema.__send__(attr)
-              merged_schema.__send__("#{attr}=", sub_schema.__send__(attr)) if sub_schema.__send__(attr) > merged_schema.__send__(attr)
-            else
-              merged_schema.__send__("#{attr}=", sub_schema.__send__(attr))
-            end
-          end
-        end
+        merge_schema(merged_schema, sub_schema)
       end
 
       _generate(merged_schema, hint: hint, position: "position/all_of")
@@ -279,6 +246,54 @@ module JsonSchema
       else
         length = schema.min_length || 0
         "a" * length
+      end
+    end
+
+    def merge_schema(a, b)
+      # attr not supported now
+      # any_of:     too difficult...
+      # enum/items: TODO: just get and of array
+      # not:        too difficult (if `not` is not wrapped by all_of wrap it?)
+      # multiple_of TODO: least common multiple
+      # pattern:    too difficult...
+      # format      TODO: just override
+
+      # array properties
+      %i[ type one_of all_of ].each do |attr|
+        a.__send__("#{attr}=", a.__send__(attr) + b.__send__(attr))
+      end
+      a.required = (a.required ? a.required + b.required : b.required) if b.required
+
+      # object properties
+      # XXX: key conflict
+      %i[ properties pattern_properties dependencies ].each do |attr|
+        a.__send__("#{attr}=", a.__send__(attr).merge(b.__send__(attr)))
+      end
+
+      # override to stronger validation
+      %i[ additional_items additional_properties ].each do |attr|
+        a.__send__("#{attr}=", false) unless a.__send__(attr) && b.__send__(attr)
+      end
+      %i[ min_exclusive max_exclusive unique_items ].each do |attr|
+        a.__send__("#{attr}=", a.__send__(attr) & b.__send__(attr))
+      end
+      %i[ min min_length min_properties ].each do |attr|
+        if b.__send__(attr)
+          if a.__send__(attr)
+            a.__send__("#{attr}=", b.__send__(attr)) if b.__send__(attr) < a.__send__(attr)
+          else
+            a.__send__("#{attr}=", b.__send__(attr))
+          end
+        end
+      end
+      %i[ max max_length max_properties ].each do |attr|
+        if b.__send__(attr)
+          if a.__send__(attr)
+            a.__send__("#{attr}=", b.__send__(attr)) if b.__send__(attr) > a.__send__(attr)
+          else
+            a.__send__("#{attr}=", b.__send__(attr))
+          end
+        end
       end
     end
   end

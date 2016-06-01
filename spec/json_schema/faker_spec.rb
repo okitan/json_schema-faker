@@ -86,6 +86,8 @@ RSpec.describe JsonSchema::Faker do
             { "type" => "integer" },
             { "maximum" => -10000 },
           ]},
+          # not
+          "not_be_values" => { "enum" => [ "a", "b" ], "not" => { "enum" => [ "a" ] } },
         }
       end
     end
@@ -101,8 +103,9 @@ RSpec.describe JsonSchema::Faker do
             "with_min"                    => { "properties" => common_properties,                        "minProperties" => 1 },
             "with_min_large"              => { "properties" => common_properties,                        "minProperties" => 3 },
             "with_required"               => { "properties" => common_properties, "required" => %w[ a ] },
+            "required_and_no_additional"  => { "properties" => common_properties, "required" => %w[ a ], "minProperties" => 2, "additionalProperties" => false },
             "min_is_larger_than_required" => { "properties" => common_properties, "required" => %w[ a ], "minProperties" => 3 },
-            "pattern_properties"          => { "patternProperties" => { "\\d+" => { "type" => "integer" } }, "additionalProperties" => false },
+            "pattern_properties"          => { "patternProperties" => { "\\d+" => { "type" => "integer" } }, "minProperties" => 1, "additionalProperties" => false },
             "with_required_and_pattern"   => { "properties" => common_properties, "required" => %w[ a ], "minProperties" => 3,
                                                "patternProperties" => { "\\d+" => { "type" => "integer" } }, "additionalProperties" => false },
             "properties_with_pattern"     => { "properties" => common_properties,                        "minProperties" => 2,
@@ -111,6 +114,7 @@ RSpec.describe JsonSchema::Faker do
                                                "dependencies" => { "a" => { "properties" => { "c" => { "enum" => [ "c" ] } }, "required" => %w[ c ] } } },
             "with_property_dependency"    => { "properties" => common_properties, "required" => %w[ a ],
                                                "dependencies" => { "a" => [ "b" ] } },
+            "not" => { "properties" => common_properties, "minProperties" => 1, "additionalProperties" => false ,"not" => { "required" => [ "a" ] } },
           }
         end
       end

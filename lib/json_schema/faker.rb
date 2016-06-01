@@ -19,7 +19,12 @@ module JsonSchema
     end
 
     def generate(hint: nil)
-      _generate(@schema, hint: nil, position: "")
+      generated = _generate(@schema, hint: nil, position: "")
+
+      Configuration.logger.debug "to generate against #{@schema.inspect_schema}" if Configuration.logger
+      Configuration.logger.debug "generated: #{generated.inspect}" if Configuration.logger
+
+      generated
     end
 
     protected
@@ -31,7 +36,11 @@ module JsonSchema
       return schema.default if schema.default
 
       if schema.not
+        hint ||= {}
         # too difficult
+        # TODO: support one_of/any_of/all_of
+        hint[:not_have_keys] = schema.not.required if schema.not.required
+        hint[:not_be_values] = schema.not.enum     if schema.not.enum
       end
 
       # TODO: should support the combinations of them
@@ -44,7 +53,7 @@ module JsonSchema
         generate_for_any_of(schema, hint: hint, position: position)
       elsif !schema.all_of.empty?
         generate_for_all_of(schema, hint: hint, position: position)
-      elsif !schema.properties.empty?
+      elsif !schema.properties.empty? || !schema.pattern_properties.empty?
         generate_for_object(schema, hint: hint, position: position)
       elsif schema.enum
         generate_by_enum(schema, hint: hint, position: position)
@@ -56,11 +65,11 @@ module JsonSchema
     end
 
     def generate_for_one_of(schema, hint: nil, position:)
-      _generate(schema.one_of.first, hint: nil, position: "position/one_of[0]")
+      _generate(schema.one_of.first, hint: hint, position: "position/one_of[0]")
     end
 
     def generate_for_any_of(schema, hint: nil, position:)
-      _generate(schema.any_of.first, hint: nil, position: "position/any_of[0]")
+      _generate(schema.any_of.first, hint: hint, position: "position/any_of[0]")
     end
 
     def generate_for_all_of(schema, hint: nil, position:)
@@ -116,7 +125,7 @@ module JsonSchema
         end
       end
 
-      _generate(merged_schema, hint: nil, position: "position/all_of")
+      _generate(merged_schema, hint: hint, position: "position/all_of")
     end
 
     def generate_for_object(schema, hint: nil, position:)
@@ -126,21 +135,29 @@ module JsonSchema
         required_length = schema.min_properties || keys.length
 
         object = keys.each.with_object({}) do |key, hash|
-          hash[key] = _generate(schema.properties[key], hint: nil, position: "#{position}/#{key}") # TODO: pass hint
+          hash[key] = _generate(schema.properties[key], hint: hint, position: "#{position}/#{key}") # TODO: pass hint
         end
       else
         required_length = schema.min_properties || schema.max_properties || 0
 
-        object = (schema.properties || {}).keys.first(required_length).each.with_object({}) do |key, hash|
-          hash[key] = _generate(schema.properties[key], hint: nil, position: "#{position}/#{key}") # TODO: pass hint
+        keys = (schema.properties || {}).keys
+        keys -= (hint[:not_have_keys] || []) if hint
+
+        object = keys.first(required_length).each.with_object({}) do |key, hash|
+          hash[key] = _generate(schema.properties[key], hint: hint, position: "#{position}/#{key}") # TODO: pass hint
         end
       end
 
       # if length is not enough
       if schema.additional_properties === false
         (required_length - object.keys.length).times.each.with_object(object) do |i, hash|
-          name = Pxeger.new(schema.pattern_properties.keys.first).generate
-          hash[name] = _generate(schema.pattern_properties.values.first, hint: nil, position: "#{position}/#{name}") # TODO: pass hint
+          if schema.pattern_properties.empty?
+            key = (schema.properties.keys - object.keys).first
+            hash[key] = _generate(schema.properties[key], hint: hint, position: "#{position}/#{key}")
+          else
+            name = Pxeger.new(schema.pattern_properties.keys.first).generate
+            hash[name] = _generate(schema.pattern_properties.values.first, hint: hint, position: "#{position}/#{name}")
+          end
         end
       else
         # FIXME: key confilct with properties
@@ -161,18 +178,26 @@ module JsonSchema
           hash.update(_generate(schema.dependencies[key], hint: nil, position: "#{position}/dependencies/#{key}"))
         else
           dependency.each do |additional_key|
-            object[additional_key] = _generate(schema.properties[additional_key], hint: nil, position: "#{position}/dependencies/#{key}/#{additional_key}") unless object.has_key?(additional_key)
+            object[additional_key] = _generate(schema.properties[additional_key], hint: hint, position: "#{position}/dependencies/#{key}/#{additional_key}") unless object.has_key?(additional_key)
           end
         end
       end
     end
 
     def generate_by_enum(schema, hint: nil, position:)
+      black_list = (hint ? hint[:not_be_values] : nil)
+
       if Configuration.logger
         Configuration.logger.info "generate by enum at #{position}"
         Configuration.logger.debug schema.inspect_schema
+        Configuration.logger.debug "black list: #{black_list}" if black_list
       end
-      schema.enum.first
+
+      if black_list
+        (schema.enum - black_list).first
+      else
+        schema.enum.first
+      end
     end
 
     def generate_by_type(schema, hint: nil, position:)
@@ -185,11 +210,11 @@ module JsonSchema
       # TODO: use include? than first
       case schema.type.first
       when "array"
-        generate_for_array(schema, hint: nil, position: position)
+        generate_for_array(schema, hint: hint, position: position)
       when "boolean"
         true
       when "integer", "number"
-        generate_for_number(schema, hint: nil)
+        generate_for_number(schema, hint: hint)
       when "null"
         nil
       when "object"
@@ -223,6 +248,7 @@ module JsonSchema
 
     def generate_for_number(schema, hint: nil)
       # http://json-schema.org/latest/json-schema-validation.html#anchor13
+      # TODO: use hint[:not_be_values]
       min = schema.min
       max = schema.max
 
@@ -246,6 +272,7 @@ module JsonSchema
 
     def generate_for_string(schema, hint: nil)
       # http://json-schema.org/latest/json-schema-validation.html#anchor25
+      # TODO: use hint[:not_be_values]
       # TODO: support format
       if schema.pattern
         Pxeger.new(schema.pattern).generate

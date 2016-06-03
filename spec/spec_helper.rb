@@ -14,7 +14,7 @@ if ENV["DEBUG"]
   JsonSchema::Faker::Configuration.logger = logger
 end
 
-Dir["spec/support/*.rb"].sort.each {|file| load file }
+Dir["spec/support/**/*.rb"].sort.each {|file| load file }
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

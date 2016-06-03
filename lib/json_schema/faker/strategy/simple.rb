@@ -216,13 +216,14 @@ module JsonSchema::Faker::Strategy
       end
       # attr not supported now
       # any_of:     too difficult / but actually no merge after comact_schema
-      # enum/items: TODO: just get and of array
+      # items:      TODO: just get and of array
       # not:        too difficult (if `not` is not wrapped by all_of wrap it?)
       # multiple_of TODO: least common multiple
-      # pattern:    too difficult...
       # format      TODO: just override
 
       # array properties
+      a.enum = (a.enum ? (a.enum & b.enum) : b.enum) if b.enum
+
       %i[ type one_of all_of ].each do |attr|
         a.__send__("#{attr}=", a.__send__(attr) + b.__send__(attr))
       end
@@ -259,6 +260,7 @@ module JsonSchema::Faker::Strategy
           end
         end
       end
+      a.pattern = (a.pattern && b.pattern) ? "(?:#{a.pattern})(?=#{b.pattern})" : (a.pattern || b.pattern)
 
       ::JsonSchema::Faker::Configuration.logger.debug a.inspect_schema if ::JsonSchema::Faker::Configuration.logger
 

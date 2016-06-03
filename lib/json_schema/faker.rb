@@ -24,7 +24,7 @@ module JsonSchema
 
       Configuration.logger.debug "to generate against #{@schema.inspect_schema}" if Configuration.logger
 
-      generated = strategy.generate(@schema, hint: nil, position: "")
+      generated = strategy.call(@schema, hint: nil, position: "")
       Configuration.logger.debug "generated: #{generated.inspect}" if Configuration.logger
 
       generated

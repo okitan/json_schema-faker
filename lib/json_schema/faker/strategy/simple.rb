@@ -1,6 +1,6 @@
 module JsonSchema::Faker::Strategy
   class Simple
-    def generate(schema, hint: nil, position:)
+    def call(schema, hint: nil, position:)
       ::JsonSchema::Faker::Configuration.logger.debug "current position: #{position}" if ::JsonSchema::Faker::Configuration.logger
 
       raise "here comes nil for schema at #{position}" unless schema
@@ -33,6 +33,7 @@ module JsonSchema::Faker::Strategy
         generate_for_object(schema, hint: hint, position: position)
       end
     end
+    alias_method :generate, :call
 
     def generate_for_one_of(schema, hint: nil, position:)
       merged_schema = ::JsonSchema::Schema.new

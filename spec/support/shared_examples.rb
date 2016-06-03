@@ -1,4 +1,4 @@
-# this requires properties
+# this requires properties and strategy
 RSpec.shared_examples "generating data from properties which passes validation" do
   it do
     raw_schema = {
@@ -10,6 +10,6 @@ RSpec.shared_examples "generating data from properties which passes validation" 
 
     @schema = JsonSchema.parse!(raw_schema)
     @schema.expand_references!
-    expect(described_class.new(@schema).generate).to be_valid_for(@schema)
+    expect(described_class.new(@schema, strategy: strategy).generate).to be_valid_for(@schema)
   end
 end

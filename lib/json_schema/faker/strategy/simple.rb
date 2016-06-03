@@ -5,6 +5,10 @@ module JsonSchema::Faker::Strategy
 
       raise "here comes nil for schema at #{position}" unless schema
 
+      # merge one_of/any_of/all_of
+      ::JsonSchema::Faker::Configuration.logger.debug schema.inspect_schema if ::JsonSchema::Faker::Configuration.logger
+      schema = compact_schema(schema)
+
       return schema.default if schema.default
 
       if schema.not
@@ -15,17 +19,8 @@ module JsonSchema::Faker::Strategy
         hint[:not_be_values] = schema.not.enum     if schema.not.enum
       end
 
-      # TODO: should support the combinations of them
       # http://json-schema.org/latest/json-schema-validation.html#anchor75
-      # Notes:
-      # one_of, any_of, all_of, properties and type is given default and never be nil
-      if    !schema.one_of.empty?
-        generate_for_one_of(schema, hint: hint, position: position)
-      elsif !schema.any_of.empty?
-        generate_for_any_of(schema, hint: hint, position: position)
-      elsif !schema.all_of.empty?
-        generate_for_all_of(schema, hint: hint, position: position)
-      elsif schema.enum
+      if schema.enum
         generate_by_enum(schema, hint: hint, position: position)
       elsif !schema.type.empty?
         generate_by_type(schema, position: position)
@@ -34,39 +29,6 @@ module JsonSchema::Faker::Strategy
       end
     end
     alias_method :generate, :call
-
-    def generate_for_one_of(schema, hint: nil, position:)
-      merged_schema = ::JsonSchema::Schema.new
-      merged_schema.copy_from(schema)
-
-      merged_schema.one_of = []
-
-      # TODO: treat rest as not
-      generate(merge_schema(merged_schema, schema.one_of.first), hint: hint, position: "position/one_of[0]")
-    end
-
-    def generate_for_any_of(schema, hint: nil, position:)
-      merged_schema = ::JsonSchema::Schema.new
-      merged_schema.copy_from(schema)
-
-      merged_schema.any_of = []
-
-      generate(merge_schema(merged_schema, schema.any_of.first), hint: hint, position: "position/any_of[0]")
-    end
-
-    def generate_for_all_of(schema, hint: nil, position:)
-      # deep_merge all_of
-      merged_schema = ::JsonSchema::Schema.new
-      merged_schema.copy_from(schema)
-
-      merged_schema.all_of = []
-
-      schema.all_of.each do |sub_schema|
-        merge_schema(merged_schema, sub_schema)
-      end
-
-      generate(merged_schema, hint: hint, position: "position/all_of")
-    end
 
     def generate_for_object(schema, hint: nil, position:)
       # http://json-schema.org/latest/json-schema-validation.html#anchor53
@@ -222,9 +184,39 @@ module JsonSchema::Faker::Strategy
       end
     end
 
-    def merge_schema(a, b)
+    def compact_schema(schema)
+      return schema if schema.one_of.empty? && schema.any_of.empty? && schema.all_of.empty?
+
+      ::JsonSchema::Faker::Configuration.logger.info "start to compact" if ::JsonSchema::Faker::Configuration.logger
+
+      merged_schema = ::JsonSchema::Schema.new
+      merged_schema.copy_from(schema)
+      merged_schema.one_of = []
+      merged_schema.any_of = []
+      merged_schema.all_of = []
+
+      merge_schema!(merged_schema, compact_schema(schema.one_of.first)) unless schema.one_of.empty?
+      merge_schema!(merged_schema, compact_schema(schema.any_of.first)) unless schema.any_of.empty?
+
+      unless schema.all_of.empty?
+        all_of = schema.all_of.inject {|a, b| merge_schema!(compact_schema(a), compact_schema(b)) }
+
+        merge_schema!(merged_schema, all_of)
+      end
+
+      ::JsonSchema::Faker::Configuration.logger.debug merged_schema.inspect_schema if ::JsonSchema::Faker::Configuration.logger
+
+      merged_schema
+    end
+
+    def merge_schema!(a, b)
+      if ::JsonSchema::Faker::Configuration.logger
+        ::JsonSchema::Faker::Configuration.logger.info "start to merge"
+        ::JsonSchema::Faker::Configuration.logger.debug a.inspect_schema
+        ::JsonSchema::Faker::Configuration.logger.debug b.inspect_schema
+      end
       # attr not supported now
-      # any_of:     too difficult...
+      # any_of:     too difficult / but actually no merge after comact_schema
       # enum/items: TODO: just get and of array
       # not:        too difficult (if `not` is not wrapped by all_of wrap it?)
       # multiple_of TODO: least common multiple
@@ -268,6 +260,8 @@ module JsonSchema::Faker::Strategy
           end
         end
       end
+
+      ::JsonSchema::Faker::Configuration.logger.debug a.inspect_schema if ::JsonSchema::Faker::Configuration.logger
 
       a
     end

@@ -134,17 +134,16 @@ module JsonSchema::Faker::Strategy
       # additionalItems items maxItems minItems uniqueItems
       length = schema.min_items || 0
 
-      # if "items" is not present, or its value is an object, validation of the instance always succeeds, regardless of the value of "additionalItems";
-      # if the value of "additionalItems" is boolean value true or an object, validation of the instance always succeeds;
-      item = if (schema.items.nil? || schema.items.is_a?(::JsonSchema::Schema)) || ( schema.additional_items === true || schema.additional_items.is_a?(JsonSchema::Schema))
+      if schema.items.nil?
         length.times.map.with_index {|i| i }
-      else # in case schema.items is array and schema.additional_items is true
-        # if the value of "additionalItems" is boolean value false and the value of "items" is an array
-        # the instance is valid if its size is less than, or equal to, the size of "items".
-        raise "#{position}: item length(#{schema.items.length} is shorter than minItems(#{schema.min_items}))" unless schema.items.length <= length
+      else
+        if schema.items.is_a?(Array)
+          items = schema.items.map.with_index {|e, i| generate(e, hint: hint, position: "#{position}/items[#{i}]") }
 
-        # TODO: consider unique items
-        length.times.map.with_index {|i| generate(schema.items[i], position: position + "[#{i}]") }
+          items + (length - items.size).map.with_index {|i| schema.additional_items === false ? i : generate(schema.additional_items, hint: hint, position: "#{position}/additional_items[#{i}]") }
+        else
+          length.times.map.with_index {|i| generate(schema.items, hint: hint, position: "#{position}/items[#{i}]") }
+        end
       end
     end
 

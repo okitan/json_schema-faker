@@ -198,7 +198,10 @@ module JsonSchema::Faker::Strategy
       merge_schema!(merged_schema, compact_schema(schema.any_of.first)) unless schema.any_of.empty?
 
       unless schema.all_of.empty?
-        all_of = schema.all_of.inject {|a, b| merge_schema!(compact_schema(a), compact_schema(b)) }
+        all_of = ::JsonSchema::Schema.new
+        all_of.copy_from(compact_schema(schema.all_of.first))
+
+        all_of = schema.all_of[1..-1].inject(all_of) {|a, b| merge_schema!(a, compact_schema(b)) }
 
         merge_schema!(merged_schema, all_of)
       end
@@ -216,7 +219,7 @@ module JsonSchema::Faker::Strategy
       end
       # attr not supported now
       # any_of:     too difficult / but actually no merge after comact_schema
-      # items:      TODO: just get and of array
+      # items:      TODO: merge object
       # not:        too difficult (if `not` is not wrapped by all_of wrap it?)
       # multiple_of TODO: least common multiple
       # format      TODO: just override
@@ -227,7 +230,7 @@ module JsonSchema::Faker::Strategy
       %i[ type one_of all_of ].each do |attr|
         a.__send__("#{attr}=", a.__send__(attr) + b.__send__(attr))
       end
-      a.required = (a.required ? a.required + b.required : b.required) if b.required
+      a.required = (a.required ? (a.required + b.required).uniq : b.required) if b.required
 
       # object properties
       # XXX: key conflict

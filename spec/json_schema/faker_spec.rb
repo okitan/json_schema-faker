@@ -12,7 +12,7 @@ RSpec.describe JsonSchema::Faker do
               "a" => { "enum" => [ "a", "aa"] },
               "b" => { "enum" => [ "b" ] },
             },
-            "required" => [ "c"],
+            "required" => [ "a", "b" ],
           }
         },
         "required"   => [ "a", "b" ],
@@ -30,8 +30,8 @@ RSpec.describe JsonSchema::Faker do
     end
 
     it "works with hint" do
-      ex = { "a" => "aa" }
-      expect(described_class.new(schema).generate(hint: { example: ex })).to eq("a" => "aa", "b" => "b")
+      ex = { "a" => "aa", "c" => { "a" => "aa" } }
+      expect(described_class.new(schema).generate(hint: { example: ex })).to eq("a" => "aa", "b" => "b", "c" => { "a" => "aa", "b" => "b"})
     end
   end
 

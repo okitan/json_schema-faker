@@ -32,30 +32,40 @@ module JsonSchema::Faker::Strategy
     alias_method :generate, :call
 
     def generate_for_object(schema, hint: nil, position:)
-      object = (hint && hint[:example] && hint[:example].is_a?(Hash)) ? hint[:example] : {}
+      # complete hint
+      object = if hint && hint[:example] && hint[:example].is_a?(Hash)
+        hint[:example].each.with_object({}) do |(key, value), hash|
+          if value.is_a?(Hash)
+            if schema.properties.has_key?(key)
+              hash[key] =  generate(schema.properties[key], hint: { example: hint[:example][key] }, position: "#{position}/#{key}")
+            else
+              # TODO: support pattern properties
+              hash[key] = value
+            end
+          else
+            hash[key] = value
+          end
+        end
+      else
+        {}
+      end
 
       # http://json-schema.org/latest/json-schema-validation.html#anchor53
       if schema.required
         keys   = schema.required
         required_length = schema.min_properties || keys.length
 
-        keys.each.with_object(object) do |key, hash|
-          next if object.has_key?(key)
-
-          hint = { example: hint[:example][key] } if hint && hint[:example]
-          hash[key] = generate(schema.properties[key], hint: hint, position: "#{position}/#{key}") # TODO: pass hint
+        (keys - object.keys).each.with_object(object) do |key, hash|
+          hash[key] = generate(schema.properties[key], hint: hint, position: "#{position}/#{key}")
         end
       else
         required_length = schema.min_properties || schema.max_properties || 0
 
-        keys = (schema.properties || {}).keys
-        keys -= (hint[:not_have_keys] || []) if hint
+        keys = (schema.properties || {}).keys - object.keys
+        keys -= hint[:not_have_keys] if hint && hint[:not_have_keys]
 
-        object = keys.first(required_length).each.with_object(object) do |key, hash|
-          next if object.hes_key?(key)
-
-          hint = { example: hint[:example][key] } if hint && hint[:example]
-          hash[key] = generate(schema.properties[key], hint: hint, position: "#{position}/#{key}") # TODO: pass hint
+        keys.first(required_length).each.with_object(object) do |key, hash|
+          hash[key] = generate(schema.properties[key], hint: hint, position: "#{position}/#{key}")
         end
       end
 

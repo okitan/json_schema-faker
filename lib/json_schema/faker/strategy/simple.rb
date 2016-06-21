@@ -1,7 +1,10 @@
 module JsonSchema::Faker::Strategy
   class Simple
     def call(schema, hint: nil, position:)
-      ::JsonSchema::Faker::Configuration.logger.debug "current position: #{position}" if ::JsonSchema::Faker::Configuration.logger
+      if ::JsonSchema::Faker::Configuration.logger
+        ::JsonSchema::Faker::Configuration.logger.debug "current position: #{position}"
+        ::JsonSchema::Faker::Configuration.logger.debug "current hint:     #{hint.inspect}"
+      end
 
       raise "here comes nil for schema at #{position}" unless schema
 
@@ -29,12 +32,17 @@ module JsonSchema::Faker::Strategy
     alias_method :generate, :call
 
     def generate_for_object(schema, hint: nil, position:)
+      object = (hint && hint[:example] && hint[:example].is_a?(Hash)) ? hint[:example] : {}
+
       # http://json-schema.org/latest/json-schema-validation.html#anchor53
       if schema.required
         keys   = schema.required
         required_length = schema.min_properties || keys.length
 
-        object = keys.each.with_object({}) do |key, hash|
+        keys.each.with_object(object) do |key, hash|
+          next if object.has_key?(key)
+
+          hint = { example: hint[:example][key] } if hint && hint[:example]
           hash[key] = generate(schema.properties[key], hint: hint, position: "#{position}/#{key}") # TODO: pass hint
         end
       else
@@ -43,7 +51,10 @@ module JsonSchema::Faker::Strategy
         keys = (schema.properties || {}).keys
         keys -= (hint[:not_have_keys] || []) if hint
 
-        object = keys.first(required_length).each.with_object({}) do |key, hash|
+        object = keys.first(required_length).each.with_object(object) do |key, hash|
+          next if object.hes_key?(key)
+
+          hint = { example: hint[:example][key] } if hint && hint[:example]
           hash[key] = generate(schema.properties[key], hint: hint, position: "#{position}/#{key}") # TODO: pass hint
         end
       end
@@ -86,18 +97,18 @@ module JsonSchema::Faker::Strategy
 
     def generate_by_enum(schema, hint: nil, position:)
       black_list = (hint ? hint[:not_be_values] : nil)
+      list       = black_list ? schema.enum - black_list : schema.enum
 
       if ::JsonSchema::Faker::Configuration.logger
         ::JsonSchema::Faker::Configuration.logger.info "generate by enum at #{position}"
         ::JsonSchema::Faker::Configuration.logger.debug schema.inspect_schema
         ::JsonSchema::Faker::Configuration.logger.debug "black list: #{black_list}" if black_list
+        ::JsonSchema::Faker::Configuration.logger.debug "list: #{list}"
       end
 
-      if black_list
-        (schema.enum - black_list).first
-      else
-        schema.enum.first
-      end
+      return hint[:example] if hint && hint[:example] && hint[:example] && list.include?(hint[:example])
+
+      list.first
     end
 
     def generate_by_type(schema, hint: nil, position:)
@@ -112,6 +123,8 @@ module JsonSchema::Faker::Strategy
       when "array"
         generate_for_array(schema, hint: hint, position: position)
       when "boolean"
+        return hint[:example] if hint && hint[:example] && (hint[:example] === true || hint[:example] === false)
+
         true
       when "integer", "number"
         generate_for_number(schema, hint: hint)
@@ -128,6 +141,9 @@ module JsonSchema::Faker::Strategy
     end
 
     def generate_for_array(schema, hint: nil, position:)
+      # completing each items is difficult
+      return hint[:example] if hint && hint[:example] && hint[:example].is_a?(Array)
+
       # http://json-schema.org/latest/json-schema-validation.html#anchor36
       # additionalItems items maxItems minItems uniqueItems
       length = schema.min_items || 0
@@ -146,6 +162,8 @@ module JsonSchema::Faker::Strategy
     end
 
     def generate_for_number(schema, hint: nil)
+      return hint[:example] if hint && hint[:example] && hint[:example].is_a?(Numeric)
+
       # http://json-schema.org/latest/json-schema-validation.html#anchor13
       # TODO: use hint[:not_be_values]
       min = schema.min
@@ -170,6 +188,8 @@ module JsonSchema::Faker::Strategy
     end
 
     def generate_for_string(schema, hint: nil)
+      return hint[:example] if hint && hint[:example] && hint[:example].is_a?(String)
+
       # http://json-schema.org/latest/json-schema-validation.html#anchor25
       # TODO: use hint[:not_be_values]
       # TODO: support format

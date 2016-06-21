@@ -5,9 +5,17 @@ RSpec.describe JsonSchema::Faker do
         "id"         => self.__id__.to_s,
         "$schema"    => "http://json-schema.org/draft-04/schema#",
         "properties" => {
-          "a" => { "enum" => [ "a" ] }
+          "a" => { "enum" => [ "a", "aa" ] },
+          "b" => { "enum" => [ "b" ]},
+          "c" => {
+            "properties" => {
+              "a" => { "enum" => [ "a", "aa"] },
+              "b" => { "enum" => [ "b" ] },
+            },
+            "required" => [ "c"],
+          }
         },
-        "required"   => [ "a" ],
+        "required"   => [ "a", "b" ],
       }
     end
 
@@ -17,8 +25,13 @@ RSpec.describe JsonSchema::Faker do
       schema
     end
 
-    it "works", :aggregate_failures do
-      expect(described_class.new(schema).generate).to eq("a" => "a")
+    it "works"  do
+      expect(described_class.new(schema).generate).to eq("a" => "a", "b" => "b")
+    end
+
+    it "works with hint" do
+      ex = { "a" => "aa" }
+      expect(described_class.new(schema).generate(hint: { example: ex })).to eq("a" => "aa", "b" => "b")
     end
   end
 

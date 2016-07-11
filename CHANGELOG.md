@@ -1,3 +1,8 @@
+## 0.3.0
+
+* ENHANCEMENT
+ * can add faker to format
+
 ## 0.2.0
 
 * ENHANCEMENT

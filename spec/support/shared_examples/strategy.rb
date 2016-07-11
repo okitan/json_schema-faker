@@ -109,7 +109,7 @@ RSpec.shared_examples "strategy" do
         tests = JSON.parse(File.read(file))
 
         tests.each.with_index do |test, i|
-          context "[#{i}]", skip: skip?(file, i) do
+          context "[#{i}] (#{test["description"]})", test: "#{file}[#{i}]", skip: skip?(file, i) do
             it_behaves_like "generating data from properties which passes validation" do
               let(:properties) do
                 { "#{file}[#{i}]" => test["schema"] }

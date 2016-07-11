@@ -1,3 +1,8 @@
+## 0.4.0
+
+* ADDED
+ * Greedy strategy to use properties as much as possible (suitable to response generation)
+
 ## 0.3.0
 
 * ENHANCEMENT

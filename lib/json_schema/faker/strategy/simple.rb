@@ -19,7 +19,7 @@ module JsonSchema::Faker::Strategy
       schema = compact_schema(schema, position: position)
 
       return schema.default if schema.default
-      return self.class.formats(schema.format).call(schema, hint: hint, position: position) if self.class.formats.has_key?(schema.format)
+      return self.class.formats[schema.format].call(schema, hint: hint, position: position) if self.class.formats.has_key?(schema.format)
 
       if schema.not
         hint ||= {}

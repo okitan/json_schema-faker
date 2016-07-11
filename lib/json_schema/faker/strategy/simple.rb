@@ -1,5 +1,11 @@
 module JsonSchema::Faker::Strategy
   class Simple
+    class << self
+      def formats
+        @formats ||= {}
+      end
+    end
+
     def call(schema, hint: nil, position:)
       if ::JsonSchema::Faker::Configuration.logger
         ::JsonSchema::Faker::Configuration.logger.debug "current position: #{position}"
@@ -13,6 +19,7 @@ module JsonSchema::Faker::Strategy
       schema = compact_schema(schema, position: position)
 
       return schema.default if schema.default
+      return self.class.formats(schema.format).call(schema, hint: hint, position: position) if self.class.formats.has_key?(schema.format)
 
       if schema.not
         hint ||= {}

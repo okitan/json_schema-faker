@@ -144,14 +144,14 @@ module JsonSchema::Faker::Strategy
 
         true
       when "integer", "number"
-        generate_for_number(schema, hint: hint)
+        generate_for_number(schema, hint: hint, position: position)
       when "null"
         nil
       when "object", nil
         # here comes object without properties
         generate_for_object(schema, hint: hint, position: position)
       when "string"
-        generate_for_string(schema, hint: hint)
+        generate_for_string(schema, hint: hint, position: position)
       else
         raise "unknown type for #{schema.inspect_schema}"
       end
@@ -178,7 +178,7 @@ module JsonSchema::Faker::Strategy
       end
     end
 
-    def generate_for_number(schema, hint: nil)
+    def generate_for_number(schema, hint: nil, position:)
       return hint[:example] if hint && hint[:example] && hint[:example].is_a?(Numeric)
 
       # http://json-schema.org/latest/json-schema-validation.html#anchor13
@@ -204,7 +204,7 @@ module JsonSchema::Faker::Strategy
       end
     end
 
-    def generate_for_string(schema, hint: nil)
+    def generate_for_string(schema, hint: nil, position:)
       return hint[:example] if hint && hint[:example] && hint[:example].is_a?(String)
 
       # http://json-schema.org/latest/json-schema-validation.html#anchor25

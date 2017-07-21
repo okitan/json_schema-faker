@@ -28,7 +28,7 @@ raw_schema = {
   "required"   => [ "a" ],
 }
 
-schema = JsonSchema::Schema.parse(raw_schema)
+schema = JsonSchema.parse!(raw_schema)
 
 JsonSchema::Faker.new(schema).generate #=> { "a" => "e" }
 ```

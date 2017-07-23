@@ -14,4 +14,11 @@ RSpec.describe JsonSchema::Faker::Formats do
       expect(described_class.email(schema)).to be_valid_for(schema)
     end
   end
+
+  context "#hostname" do
+    it "is valid" do
+      schema = JsonSchema.parse!("format" => "hostname")
+      expect(described_class.hostname(schema)).to be_valid_for(schema)
+    end
+  end
 end

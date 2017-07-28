@@ -49,6 +49,13 @@ class JsonSchema::Faker
       ].sample.call
     end
 
+    def uri(schema, hint: nil, position: nil)
+      raise "invalid schema given" unless schema.format == "uri"
+
+      # TODO: urn
+      ::Faker::Internet.url
+    end
+
     module_function *instance_methods
   end
 end

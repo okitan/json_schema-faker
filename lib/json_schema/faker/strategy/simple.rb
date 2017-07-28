@@ -171,7 +171,7 @@ module JsonSchema::Faker::Strategy
         if schema.items.is_a?(Array)
           items = schema.items.map.with_index {|e, i| generate(e, hint: hint, position: "#{position}/items[#{i}]") }
 
-          items + (length - items.size).map.with_index {|i| schema.additional_items === false ? i : generate(schema.additional_items, hint: hint, position: "#{position}/additional_items[#{i}]") }
+          items + (length - items.size).times.map.with_index {|i| schema.additional_items === false ? i : generate(schema.additional_items, hint: hint, position: "#{position}/additional_items[#{i}]") }
         else
           length.times.map.with_index {|i| generate(schema.items, hint: hint, position: "#{position}/items[#{i}]") }
         end

@@ -21,22 +21,27 @@ module JsonSchema::Faker::Strategy
         {}
       end
 
+      if hint && hint[:not_have_keys]
+        candidates      = schema.properties.keys - object.keys - hint[:not_have_keys]
+        required_length = schema.max_properties || [ (schema.properties.keys - hint[:not_have_keys]).size, (schema.min_properties || 0) ].max
+      else
+        candidates      = schema.properties.keys - object.keys
+        required_length = schema.max_properties || [ schema.properties.keys.size, (schema.min_properties || 0) ].max
+      end
+
       # http://json-schema.org/latest/json-schema-validation.html#anchor53
-      required_length = schema.max_properties || [ schema.properties.size, (schema.min_properties || 0) ].max
-
-      keys = ((schema.required || [])+ (schema.properties || {}).keys).uniq - object.keys
-      keys -= hint[:not_have_keys] if hint && hint[:not_have_keys]
-
-      keys.first(required_length).each.with_object(object) do |key, hash|
+      # TODO: candidates.shift(required_length)
+      candidates.first(required_length).each.with_object(object) do |key, hash|
         hash[key] = generate(schema.properties[key], hint: hint, position: "#{position}/#{key}")
       end
+      candidates = candidates - object.keys
 
       # if length is not enough
       if schema.additional_properties === false
         (required_length - object.keys.length).times.each.with_object(object) do |i, hash|
           if schema.pattern_properties.empty?
-            key = (schema.properties.keys - object.keys).first
-            hash[key] = generate(schema.properties[key], hint: hint, position: "#{position}/#{key}")
+            key = candidates.pop
+            hash[key] = generate(schema.properties[key], hint: hint, position: "#{position}/#{key}") if key
           else
             name = ::Pxeger.new(schema.pattern_properties.keys.first).generate
             hash[name] = generate(schema.pattern_properties.values.first, hint: hint, position: "#{position}/#{name}")
@@ -51,7 +56,6 @@ module JsonSchema::Faker::Strategy
 
       # consider dependency
       depended_keys = object.keys & schema.dependencies.keys
-
       # FIXME: circular dependency is not supported
       depended_keys.each.with_object(object) do |key, hash|
         dependency = schema.dependencies[key]
@@ -61,7 +65,7 @@ module JsonSchema::Faker::Strategy
           hash.update(generate(schema.dependencies[key], hint: nil, position: "#{position}/dependencies/#{key}"))
         else
           dependency.each do |additional_key|
-            object[additional_key] = generate(schema.properties[additional_key], hint: hint, position: "#{position}/dependencies/#{key}/#{additional_key}") unless object.has_key?(additional_key)
+            hash[additional_key] = generate(schema.properties[additional_key], hint: hint, position: "#{position}/dependencies/#{key}/#{additional_key}") unless object.has_key?(additional_key)
           end
         end
       end

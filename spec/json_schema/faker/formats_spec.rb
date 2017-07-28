@@ -28,4 +28,11 @@ RSpec.describe JsonSchema::Faker::Formats do
       expect(described_class.ipv4(schema)).to be_valid_for(schema)
     end
   end
+
+  context "ipv6" do
+    it "is valid" do
+      schema = JsonSchema.parse!("format" => "ipv6")
+      expect(described_class.ipv6(schema)).to be_valid_for(schema)
+    end
+  end
 end

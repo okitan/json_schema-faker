@@ -37,6 +37,18 @@ class JsonSchema::Faker
       ].sample.call
     end
 
+    # https://tools.ietf.org/html/rfc3849
+    def ipv6(schema, hint: nil, position: nil)
+      raise "invalid schema given" unless schema.format == "ipv6"
+
+      [
+        ->() { "2001:0db8:" + 6.times.map { "%04x" % rand(65535) }.join(":") },
+        ->() { "2001:0DB8:" + 6.times.map { "%04X" % rand(65535) }.join(":") },
+        ->() { "2001:db8:"  + 6.times.map {   "%x" % rand(65535) }.join(":") },
+        ->() { "2001:DB8:"  + 6.times.map {   "%X" % rand(65535) }.join(":") },
+      ].sample.call
+    end
+
     module_function *instance_methods
   end
 end

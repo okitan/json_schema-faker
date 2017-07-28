@@ -23,7 +23,7 @@ class JsonSchema::Faker
     def hostname(schema, hint: nil, position: nil)
       raise "invalid schema given" unless schema.format == "hostname"
 
-      "example." + %w[ org com net ].sample
+      safe_domain
     end
 
     # https://tools.ietf.org/html/rfc5737
@@ -53,7 +53,11 @@ class JsonSchema::Faker
       raise "invalid schema given" unless schema.format == "uri"
 
       # TODO: urn
-      ::Faker::Internet.url
+      ::Faker::Internet.url(safe_domain)
+    end
+
+    protected def safe_domain
+      "example." + %w[ org com net ].sample
     end
 
     module_function *instance_methods

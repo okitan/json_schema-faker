@@ -27,7 +27,6 @@ Gem::Specification.new do |spec|
 
   # check pr
   spec.add_development_dependency "danger"
-  spec.add_development_dependency "git_diff_parser"
   spec.add_development_dependency "danger-rspec_no_filter"
 
   # debug

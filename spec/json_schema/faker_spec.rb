@@ -42,8 +42,7 @@ RSpec.describe JsonSchema::Faker do
     context "with #{strategy}" do
       it_behaves_like "strategy" do
         before do |example|
-          # really last of
-          if strategy == ::JsonSchema::Faker::Strategy::Greedy
+          if strategy == ::JsonSchema::Faker::Strategy::Greedy && example.metadata[:test]
             skip "do not support invalid schema"                  if example.metadata[:test].start_with?("suite/tests/draft4/default.json")
             skip "not is difficult"                               if example.metadata[:test] == "suite/tests/draft4/not.json[3]"
             skip "combinatio withpattern properties is difficult" if example.metadata[:test] == "suite/tests/draft4/properties.json[1]"

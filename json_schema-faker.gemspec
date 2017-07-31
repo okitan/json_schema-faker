@@ -25,6 +25,10 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec"
   spec.add_development_dependency "guard-rspec"
 
+  # check pr
+  spec.add_development_dependency "danger"
+  spec.add_development_dependency "git_diff_parser"
+
   # debug
   spec.add_development_dependency "pry"
 end

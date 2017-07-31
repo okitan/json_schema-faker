@@ -27,7 +27,7 @@ RSpec.describe JsonSchema::Faker do
       schema
     end
 
-    it "works"  do
+    fit "works"  do
       expect(described_class.new(schema).generate).to eq("a" => "a", "b" => "b")
     end
 
@@ -39,7 +39,7 @@ RSpec.describe JsonSchema::Faker do
 
   # TODO: switch strategy
   [ JsonSchema::Faker::Strategy::Simple, JsonSchema::Faker::Strategy::Greedy ].each do |strategy|
-    context "with #{strategy}" do
+    context "with #{strategy}", :focus do
       it_behaves_like "strategy" do
         before do |example|
           if strategy == ::JsonSchema::Faker::Strategy::Greedy && example.metadata[:test]

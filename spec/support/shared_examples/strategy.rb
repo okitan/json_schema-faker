@@ -109,7 +109,7 @@ RSpec.shared_examples "strategy" do
       next if file == "suite/tests/draft4/ref.json"         # they should be root schema and when I do it, faker will always return {}
       next if file == "suite/tests/draft4/refRemote.json"   # json shema does not support resolve ref over http
 
-      context "from suite #{file}" do
+      fcontext "from suite #{file}" do
         tests = JSON.parse(File.read(file))
 
         tests.each.with_index do |test, i|

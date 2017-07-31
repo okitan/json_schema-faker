@@ -63,7 +63,7 @@ RSpec.shared_examples "strategy" do
       end
     end
 
-    context "object" do
+    fcontext "object" do
       it_behaves_like "generating data from properties which passes validation" do
         let(:common_properties) do
           { "a" => { "enum" => [ "a" ] }, "b" => { "enum" => [ "b" ] } }

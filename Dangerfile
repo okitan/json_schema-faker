@@ -12,7 +12,7 @@ regexp = Regexp.new([ "fit", "fcontext", *tag_for_focus ].map {|item| "\\s+#{ite
 diff = GitDiffParser.parse(github.pr_diff)
 
 diff.each do |diff_per_file|
-  next if diff_per_file.file.end_with?(".rb") # for shared examples _spec.rb is not enough
+  next unless diff_per_file.file.end_with?(".rb") # for shared examples _spec.rb is not enough
 
   diff_per_file.changed_lines.each do |line|
     if line.content =~ regexp

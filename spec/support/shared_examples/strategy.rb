@@ -1,5 +1,5 @@
 RSpec.shared_examples "strategy" do
-  context "against json_schema-faker standard test set" do
+  context "against json_schema-faker standard test set", :skip do
     it_behaves_like "generating data from properties which passes validation" do
       let(:properties) do
         {
@@ -63,7 +63,7 @@ RSpec.shared_examples "strategy" do
       end
     end
 
-    context "object" do
+    fcontext "object" do
       it_behaves_like "generating data from properties which passes validation" do
         let(:common_properties) do
           { "a" => { "enum" => [ "a" ] }, "b" => { "enum" => [ "b" ] } }

@@ -27,11 +27,11 @@ RSpec.describe JsonSchema::Faker do
       schema
     end
 
-    it "works"  do
+    fit "works"  do
       expect(described_class.new(schema).generate).to eq("a" => "a", "b" => "b")
     end
 
-    it "works with hint" do
+    it "works with hint", :focus do
       ex = { "a" => "aa", "c" => { "a" => "aa" } }
       expect(described_class.new(schema).generate(hint: { example: ex })).to eq("a" => "aa", "b" => "b", "c" => { "a" => "aa", "b" => "b"})
     end

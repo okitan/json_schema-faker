@@ -1,1 +1,1 @@
-rspec_no_filter.warn_for_rspec_filter_tags
+rspec_no_filter.warn_for_rspec_filter

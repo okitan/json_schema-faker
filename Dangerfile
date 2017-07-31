@@ -16,7 +16,7 @@ diff.each do |diff_per_file|
 
   diff_per_file.changed_lines.each do |line|
     if line.content =~ regexp
-      warn "#{line.content} includes #{regexp}"
+      warn "#{line.content} on #{diff_per_file.file}:#{line.number} includes #{regexp}"
     end
   end
 end

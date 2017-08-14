@@ -296,7 +296,9 @@ module JsonSchema::Faker::Strategy
       # object properties
       # XXX: key conflict
       %i[ properties pattern_properties dependencies ].each do |attr|
-        a.__send__("#{attr}=", a.__send__(attr).merge(b.__send__(attr)))
+        a.__send__("#{attr}=", (a.__send__(attr).keys + b.__send__(attr).keys).uniq.each.with_object({}) do |key, hash|
+          hash[key] = take_logical_and_of_schema(a.__send__(attr)[key], b.__send__(attr)[key])
+        end)
       end
 
       # array of object

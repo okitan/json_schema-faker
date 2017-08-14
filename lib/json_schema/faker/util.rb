@@ -79,7 +79,7 @@ class JsonSchema::Faker
               end
             end
           elsif a.items.is_a?(::JsonSchema::Schema) && b.items.is_a?(::JsonSchema::Schema)
-            a.items = take_logical_and_of_schema!(a.items b.items)
+            a.items = take_logical_and_of_schema(a.items, b.items)
           end
         else
           a.items = b.items

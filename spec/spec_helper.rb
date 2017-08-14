@@ -47,7 +47,11 @@ RSpec.configure do |config|
     elsif %w[ items minItems maxItems uniqueItems ].any? {|key| schema.has_key?(key)}
       schema.merge("type" => "array").tap do |s|
         if s["items"]
-          s["items"].map! {|e| complete_schema(e) }
+          if s["items"].is_a?(Array)
+            s["items"].map! {|e| complete_schema(e) }
+          elsif s["items"].is_a?(::JsonSchema::Schema)
+            s["items"] = complete_schema(e)
+          end
         end
       end
     elsif %w[ minProperties maxProperties required properties additionalProperties patternProperties dependencies ].any? {|key| schema.has_key?(key) }

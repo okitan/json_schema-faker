@@ -80,6 +80,11 @@ require "json_schema/faker/util"
         { "items" => [ { "minimum" => 5 }, { "maximum" => 5 }, { "type" => ["string"] }] },
         { "items" => [ { "minimum" => 5 }, { "maximum" => 3 }, { "type" => ["string"] }] },
       ],
+      "items_schema" => [
+        { "items" => { "minimum" => 3 } },
+        { "items" => { "minimum" => 5 } },
+        { "items" => { "minimum" => 5 } },
+      ],
       "minItems"    => [ { "minItems" =>  10 }, { "minItems" =>  20 }, { "minItems" => 20 } ],
       "maxItems"    => [ { "maxItems" =>  10 }, { "maxItems" =>  20 }, { "maxItems" => 10 } ],
       "uniqueItems" => [ { "uniqueItems" => false }, { "uniqueItems" => true }, { "uniqueItems" => true } ],

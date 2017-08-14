@@ -1,5 +1,9 @@
+require "json_schema/faker/util"
+
 module JsonSchema::Faker::Strategy
   class Simple
+    include ::JsonSchema::Faker::Util
+
     class << self
       def formats
         @formats ||= {}
@@ -257,8 +261,9 @@ module JsonSchema::Faker::Strategy
         all_of.copy_from(schema.all_of.first)
 
         all_of = schema.all_of[1..-1].each.with_index.inject(all_of) do |(a, _), (b, i)|
-          compact_and_merge_schema(a, b, a_position: "#{position}/all_of", b_position: "#{position}/all_of[#{i+1}]")
+          take_logical_and_of_schema(a, b, a_position: "#{position}/all_of", b_position: "#{position}/all_of[#{i+1}]")
         end
+        all_of = compact_schema(all_of, position: "#{position}/all_of")
 
         merge_schema!(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
       end

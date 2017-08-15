@@ -1,22 +1,29 @@
+## 0.5.0
+
+* Added
+  * ::JsonSchema::Faker::Util. utility for json_schema
+* Removed
+  * ::JsonSchema::Faker::Strategy::Simple.merge_schema! is removed. use ::JsonSchema::Faker::Util.take_logical_and_of_schema instead.
+
 ## 0.4.0
 
-* ADDED
- * Greedy strategy to use properties as much as possible (suitable to response generation)
+* Added
+  * Greedy strategy to use properties as much as possible (suitable to response generation)
 
 ## 0.3.0
 
-* ENHANCEMENT
- * can add faker to format
+* Added
+  * can add faker to format
 
 ## 0.2.0
 
-* ENHANCEMENT
- * support example as hint
+* Added
+  * support example as hint
 
 ## 0.1.1
 
-* IMPROVEMENT
- * refactor and improve generation
+* Added
+  * refactor and improve generation
 
 ## 0.1.0
 

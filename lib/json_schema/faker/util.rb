@@ -67,13 +67,15 @@ class JsonSchema::Faker
         end
       end
       # pattern
-      if a.pattern && b.pattern
-        # TODO: pexeger does not support generated one
-        ::JsonSchema::Faker::Configuration.logger.warn "not support merging pattern" if ::JsonSchema::Faker::Configuration.logger
+      if b.pattern
+        if a.pattern
+          # TODO: pexeger does not support generated one
+          ::JsonSchema::Faker::Configuration.logger.warn "not support merging pattern" if ::JsonSchema::Faker::Configuration.logger
+          #  a.pattern = RegExp.new("/^(?=.*#{a.pattern.inspect.gsub("/\\/", "").gsub("\\//", "")})(?=.*#{b.pattern.inspect.gsub("/\\/", "").gsub("\\//", "")})/")
+        else
+          a.pattern = b.pattern
+        end
       end
-      #if b.pattern
-      #  a.pattern = (a.pattern ? "/^(?=.*#{a.pattern.inspect.gsub("/\\/", "").gsub("\\//", "")})(?=.*#{b.pattern.inspect.gsub("/\\/", "").gsub("\\//", "")})/" : b.pattern)
-      #end
 
       # for array
       # items and aditionalItems

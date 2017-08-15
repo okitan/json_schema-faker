@@ -1,3 +1,8 @@
+## 0.5.1
+
+* Added
+ * support for copying pattern in take_logical_and_of_schema
+
 ## 0.5.0
 
 * Added

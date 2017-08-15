@@ -101,23 +101,43 @@ module JsonSchema::Faker::Strategy
       # consider dependency
       depended_keys = object.keys & schema.dependencies.keys
 
-      # FIXME: circular dependency is not supported
-      depended_keys.each.with_object(object) do |key, hash|
-        ::JsonSchema::Faker::Configuration.logger.info "working with dependended keys #{key}" if ::JsonSchema::Faker::Configuration.logger
-        dependency = schema.dependencies[key]
-
-        if dependency.is_a?(::JsonSchema::Schema)
-          merged_schema = compact_schema(take_logical_and_of_schema(schema, dependency), position: position)
-          merged_schema.dependencies.delete(key) # but this may canage original one...
-
-          ::JsonSchema::Faker::Configuration.logger.info "generate again with merged schema #{merged_schema.inspect_schema}" if ::JsonSchema::Faker::Configuration.logger
-          hash.replace(generate_for_object(merged_schema, hint: hint, position: position))
-        else
-          dependency.each do |additional_key|
+      if depended_keys.all? {|key| schema.dependencies[key].is_a?(Array) }
+        # FIXME: circular dependency is not supported
+        depended_keys.each.with_object(object) do |key, hash|
+          schema.dependencies[key].each do |additional_key|
             hash[additional_key] = generate(schema.properties[additional_key], hint: hint, position: "#{position}/dependencies/#{key}/#{additional_key}") unless object.has_key?(additional_key)
           end
         end
+      else
+        merged_schema = ::JsonSchema::Schema.new.tap {|s| s.copy_from(schema) }
+        depended_keys.each do |key|
+          dependency = schema.dependencies[key]
+          if dependency.is_a?(::JsonSchema::Schema)
+            merged_schema = compact_schema(take_logical_and_of_schema(merged_schema, dependency), position: position)
+          else
+            merged_schema.required = (merged_schema.required + dependency).uniq
+          end
+        end
+        merged_schema.dependencies = nil # XXX: recursive dependency will fail
+        generate_for_object(merged_schema, hint: hint, position: position)
       end
+
+      # depended_keys.each.with_object(object) do |key, hash|
+      #   ::JsonSchema::Faker::Configuration.logger.info "working with dependended keys #{key}" if ::JsonSchema::Faker::Configuration.logger
+      #   dependency = schema.dependencies[key]
+      #
+      #   if dependency.is_a?(::JsonSchema::Schema)
+      #     merged_schema = compact_schema(take_logical_and_of_schema(schema, dependency), position: position)
+      #     merged_schema.dependencies.delete(key) # but this may canage original one...
+      #
+      #     ::JsonSchema::Faker::Configuration.logger.info "generate again with merged schema #{merged_schema.inspect_schema}" if ::JsonSchema::Faker::Configuration.logger
+      #     hash.replace(generate_for_object(merged_schema, hint: hint, position: position))
+      #   else
+      #     dependency.each do |additional_key|
+      #       hash[additional_key] = generate(schema.properties[additional_key], hint: hint, position: "#{position}/dependencies/#{key}/#{additional_key}") unless object.has_key?(additional_key)
+      #     end
+      #   end
+      # end
     end
 
     def generate_by_enum(schema, hint: nil, position:)

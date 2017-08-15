@@ -82,8 +82,11 @@ class JsonSchema::Faker
       if b.items
         if a.items
           if a.items.is_a?(Array) && b.items.is_a?(Array)
-            [ a.items.size, b.items.size ].max.times do |i|
-              ai, bi = a.items[i], b.items[i]
+            original_a_items = a.items
+            a.items = [] # avoid disruptive
+            [ original_a_items.size, b.items.size ].max.times do |i|
+              # XXX:
+              ai, bi = original_a_items[i], b.items[i]
               if ai && bi
                 a.items[i] = take_logical_and_of_schema(ai, bi)
               else
@@ -143,8 +146,10 @@ class JsonSchema::Faker
       end
       # properties
       if !b.properties.empty?
-        ( a.properties.keys + b.properties.keys ).uniq.each do |key|
-          a.properties[key] = take_logical_and_of_schema(a.properties[key], b.properties[key])
+        original_a_properties = a.properties
+        a.properties = {} # avoid disruptive
+        ( original_a_properties.keys + b.properties.keys ).uniq.each do |key|
+          a.properties[key] = take_logical_and_of_schema(original_a_properties[key], b.properties[key])
         end
       end
       # additionalProperties, patternProperties, dependencies

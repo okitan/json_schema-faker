@@ -103,14 +103,18 @@ module JsonSchema::Faker::Strategy
 
       # FIXME: circular dependency is not supported
       depended_keys.each.with_object(object) do |key, hash|
+        ::JsonSchema::Faker::Configuration.logger.info "working with dependended keys #{key}" if ::JsonSchema::Faker::Configuration.logger
         dependency = schema.dependencies[key]
 
         if dependency.is_a?(::JsonSchema::Schema)
-          # too difficult we just merge
-          hash.update(generate(schema.dependencies[key], hint: nil, position: "#{position}/dependencies/#{key}"))
+          merged_schema = compact_schema(take_logical_and_of_schema(schema, dependency), position: position)
+          merged_schema.dependencies.delete(key) # but this may canage original one...
+
+          ::JsonSchema::Faker::Configuration.logger.info "generate again with merged schema #{merged_schema.inspect_schema}" if ::JsonSchema::Faker::Configuration.logger
+          hash.replace(generate_for_object(merged_schema, hint: hint, position: position))
         else
           dependency.each do |additional_key|
-            object[additional_key] = generate(schema.properties[additional_key], hint: hint, position: "#{position}/dependencies/#{key}/#{additional_key}") unless object.has_key?(additional_key)
+            hash[additional_key] = generate(schema.properties[additional_key], hint: hint, position: "#{position}/dependencies/#{key}/#{additional_key}") unless object.has_key?(additional_key)
           end
         end
       end

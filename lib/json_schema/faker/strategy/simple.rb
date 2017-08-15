@@ -1,5 +1,9 @@
+require "json_schema/faker/util"
+
 module JsonSchema::Faker::Strategy
   class Simple
+    include ::JsonSchema::Faker::Util
+
     class << self
       def formats
         @formats ||= {}
@@ -218,15 +222,7 @@ module JsonSchema::Faker::Strategy
       end
     end
 
-    def compact_and_merge_schema(a, b, a_position:, b_position:)
-      merge_schema!(
-        compact_schema(a, position: a_position),
-        compact_schema(b, position: b_position),
-        a_position: a_position,
-        b_position: b_position
-      )
-    end
-
+    # TODO: compacting all_of and one_of/any_of at once will not work
     def compact_schema(schema, position:)
       return schema if schema.one_of.empty? && schema.any_of.empty? && schema.all_of.empty?
 
@@ -241,108 +237,57 @@ module JsonSchema::Faker::Strategy
       merged_schema.any_of = []
       merged_schema.all_of = []
 
-      unless schema.one_of.empty?
-        ::JsonSchema::Faker::Configuration.logger.info "compact one_of" if ::JsonSchema::Faker::Configuration.logger
-        compact_and_merge_schema(merged_schema, schema.one_of.first, a_position: position, b_position: "#{position}/one_of[0]")
-      end
-
-      unless schema.any_of.empty?
-        ::JsonSchema::Faker::Configuration.logger.info "compact any_of" if ::JsonSchema::Faker::Configuration.logger
-        compact_and_merge_schema(merged_schema, schema.any_of.first, a_position: position, b_position: "#{position}/any_of[0]")
-      end
-
       unless schema.all_of.empty?
         ::JsonSchema::Faker::Configuration.logger.info "compact all_of" if ::JsonSchema::Faker::Configuration.logger
-        all_of = ::JsonSchema::Schema.new
-        all_of.copy_from(schema.all_of.first)
 
-        all_of = schema.all_of[1..-1].each.with_index.inject(all_of) do |(a, _), (b, i)|
-          compact_and_merge_schema(a, b, a_position: "#{position}/all_of", b_position: "#{position}/all_of[#{i+1}]")
+        all_of = schema.all_of.each.with_index.inject(nil) do |(a, _), (b, i)|
+          if a
+            take_logical_and_of_schema(a, b, a_position: "#{position}/all_of", b_position: "#{position}/all_of[#{i+1}]")
+          else
+            b
+          end
         end
 
-        merge_schema!(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
+        merged_schema = unless schema.one_of.empty? && schema.any_of.empty?
+          ::JsonSchema::Faker::Configuration.logger.info "find from one_of and any_of which satiffy all_of" if ::JsonSchema::Faker::Configuration.logger
+          one_of_candidate = schema.one_of.find do |s|
+            s2 = take_logical_and_of_schema(s, all_of)
+            compare_schema(s, s2) # FIXME: check s2 > s
+          end
+
+          any_of_candidate = schema.any_of.find do |s|
+            s2 = take_logical_and_of_schema(s, all_of)
+            compare_schema(s, s2) # FIXME: check s2 > s
+          end
+
+          unless one_of_candidate || any_of_candidate
+            ::JsonSchema::Faker::Configuration.logger.error "failed to find condition which satfisfy all_of in one_of and any_of" if ::JsonSchema::Faker::Configuration.logger
+            take_logical_and_of_schema(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
+          else
+            take_logical_and_of_schema(merged_schema, one_of_candidate, a_position: position, b_position: "#{position}/one_of") if one_of_candidate
+            take_logical_and_of_schema(merged_schema, any_of_candidate, a_position: position, b_position: "#{position}/any_of") if any_of_candidate
+          end
+        else
+          take_logical_and_of_schema(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
+        end
+      else
+        unless schema.one_of.empty?
+          ::JsonSchema::Faker::Configuration.logger.info "compact one_of" if ::JsonSchema::Faker::Configuration.logger
+          merged_schema = take_logical_and_of_schema(merged_schema, schema.one_of.first, a_position: position, b_position: "#{position}/one_of[0]")
+        end
+
+        unless schema.any_of.empty?
+          ::JsonSchema::Faker::Configuration.logger.info "compact any_of" if ::JsonSchema::Faker::Configuration.logger
+          merged_schema = take_logical_and_of_schema(merged_schema, schema.any_of.first, a_position: position, b_position: "#{position}/any_of[0]")
+        end
       end
+
+      # compact recursively
+      merged_schema = compact_schema(merged_schema, position: position)
 
       ::JsonSchema::Faker::Configuration.logger.debug "compacted: #{merged_schema.inspect_schema}" if ::JsonSchema::Faker::Configuration.logger
 
       merged_schema
-    end
-
-    def merge_schema!(a, b, a_position:, b_position:)
-      if ::JsonSchema::Faker::Configuration.logger
-        ::JsonSchema::Faker::Configuration.logger.info "start to merge at #{a_position} with #{b_position}"
-        ::JsonSchema::Faker::Configuration.logger.debug "a: #{a.inspect_schema}"
-        ::JsonSchema::Faker::Configuration.logger.debug "b: #{b.inspect_schema}"
-      end
-      # attr not supported now
-      # not:        too difficult (if `not` is not wrapped by all_of wrap it?)
-      # multiple_of TODO: least common multiple
-      # format      TODO: just override
-
-      # array properties
-      a.any_of = (a.any_of.empty? ? b.any_of : a.any_of) # XXX: actually impossible
-      a.enum = (a.enum    ? (a.enum & b.enum) : b.enum) if b.enum
-
-      %i[ type one_of all_of ].each do |attr|
-        a.__send__("#{attr}=", a.__send__(attr) + b.__send__(attr))
-      end
-      a.required = (a.required ? (a.required + b.required).uniq : b.required) if b.required
-
-      # object properties
-      # XXX: key conflict
-      %i[ properties pattern_properties dependencies ].each do |attr|
-        a.__send__("#{attr}=", a.__send__(attr).merge(b.__send__(attr)))
-      end
-
-      # array of object
-      if a.items && b.items
-        if a.items.is_a?(Array) && b.items.is_a?(Array)
-          # TODO: zip and merge it
-        elsif a.items.is_a?(Array) && b.items.is_a?(::JsonSchema::Schema)
-          a.items = a.items.map.with_index do |e, i|
-            compact_and_merge_schema(e, b.items, a_position: "#{a_position}/items[#{i}]", b_position: "#{b_position}/items")
-          end
-        elsif a.items.is_a?(::JsonSchema::Schema) && a.items.is_a?(Array)
-          a.items = b.items.map.with_index do |e, i|
-            compact_and_merge_schema(a.items, e, a_position: "#{a_position}/items", b_position: "#{b_position}/items[#{i}]")
-          end
-        else
-          compact_and_merge_schema(a.items, b.items, a_position: "#{a_position}/items", b_position: "#{b_position}/items")
-        end
-      else
-        a.items ||= b.items
-      end
-
-      # override to stronger validation
-      %i[ additional_items additional_properties ].each do |attr|
-        a.__send__("#{attr}=", false) unless a.__send__(attr) && b.__send__(attr)
-      end
-      %i[ min_exclusive max_exclusive unique_items ].each do |attr|
-        a.__send__("#{attr}=", a.__send__(attr) & b.__send__(attr))
-      end
-      %i[ min min_length min_properties min_items ].each do |attr|
-        if b.__send__(attr)
-          if a.__send__(attr)
-            a.__send__("#{attr}=", b.__send__(attr)) if b.__send__(attr) < a.__send__(attr)
-          else
-            a.__send__("#{attr}=", b.__send__(attr))
-          end
-        end
-      end
-      %i[ max max_length max_properties max_items ].each do |attr|
-        if b.__send__(attr)
-          if a.__send__(attr)
-            a.__send__("#{attr}=", b.__send__(attr)) if b.__send__(attr) > a.__send__(attr)
-          else
-            a.__send__("#{attr}=", b.__send__(attr))
-          end
-        end
-      end
-      a.pattern = (a.pattern && b.pattern) ? "(?:#{a.pattern})(?=#{b.pattern})" : (a.pattern || b.pattern)
-
-      ::JsonSchema::Faker::Configuration.logger.debug "merged: #{a.inspect_schema}" if ::JsonSchema::Faker::Configuration.logger
-
-      a
     end
   end
 end

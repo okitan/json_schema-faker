@@ -57,6 +57,10 @@ RSpec.shared_examples "strategy" do
             { "type" => "integer" },
             { "maximum" => -10000 },
           ]},
+          "all_of_and_one_of" => { "allOf" => [
+            { "oneOf" => [ { "enum" => [ "a" ]}, { "enum" => [ "b" ]} ] },
+            { "oneOf" => [ { "enum" => [ "b" ]} ] },
+          ]},
           # not
           "not_be_values" => { "enum" => [ "a", "b" ], "not" => { "enum" => [ "a" ] } },
         }
@@ -86,6 +90,16 @@ RSpec.shared_examples "strategy" do
             "with_property_dependency"    => { "properties" => common_properties, "required" => %w[ a ],
                                                "dependencies" => { "a" => [ "b" ] } },
             "not" => { "properties" => common_properties, "minProperties" => 1, "additionalProperties" => false ,"not" => { "required" => [ "a" ] } },
+          }
+        end
+      end
+    end
+
+    context "for wip" do
+      it_behaves_like "generating data from properties which passes validation" do
+        let(:properties) do
+          {
+            # you can write particular property here
           }
         end
       end

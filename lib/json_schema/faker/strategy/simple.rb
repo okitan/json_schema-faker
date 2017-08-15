@@ -231,6 +231,7 @@ module JsonSchema::Faker::Strategy
       )
     end
 
+    # TODO: compacting all_of and one_of/any_of at once will not work
     def compact_schema(schema, position:)
       return schema if schema.one_of.empty? && schema.any_of.empty? && schema.all_of.empty?
 
@@ -245,27 +246,44 @@ module JsonSchema::Faker::Strategy
       merged_schema.any_of = []
       merged_schema.all_of = []
 
-      unless schema.one_of.empty?
-        ::JsonSchema::Faker::Configuration.logger.info "compact one_of" if ::JsonSchema::Faker::Configuration.logger
-        compact_and_merge_schema(merged_schema, schema.one_of.first, a_position: position, b_position: "#{position}/one_of[0]")
-      end
-
-      unless schema.any_of.empty?
-        ::JsonSchema::Faker::Configuration.logger.info "compact any_of" if ::JsonSchema::Faker::Configuration.logger
-        compact_and_merge_schema(merged_schema, schema.any_of.first, a_position: position, b_position: "#{position}/any_of[0]")
-      end
-
       unless schema.all_of.empty?
         ::JsonSchema::Faker::Configuration.logger.info "compact all_of" if ::JsonSchema::Faker::Configuration.logger
-        all_of = ::JsonSchema::Schema.new
-        all_of.copy_from(schema.all_of.first)
 
-        all_of = schema.all_of[1..-1].each.with_index.inject(all_of) do |(a, _), (b, i)|
-          take_logical_and_of_schema(a, b, a_position: "#{position}/all_of", b_position: "#{position}/all_of[#{i+1}]")
+        all_of = schema.all_of.each.with_index.inject(nil) do |(a, _), (b, i)|
+          if a
+            take_logical_and_of_schema(a, b, a_position: "#{position}/all_of", b_position: "#{position}/all_of[#{i+1}]")
+          else
+            b
+          end
         end
-        all_of = compact_schema(all_of, position: "#{position}/all_of")
 
-        merge_schema!(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
+        unless schema.one_of.empty? && schema.any_of.empty?
+          ::JsonSchema::Faker::Configuration.logger.info "find from one_of and any_of which satiffy all_of" if ::JsonSchema::Faker::Configuration.logger
+          candidate = (schema.one_of + schema.any_of).find do |s|
+            # XXX: logical and must be limited condition but currently check equality
+            s2 = take_logical_and_of_schema(s, all_of)
+            compare_schema(s, s2)
+          end
+
+          unless candidate
+            ::JsonSchema::Faker::Configuration.logger.error "failed to find condition which satfisfy all_of in one_of and any_of" if ::JsonSchema::Faker::Configuration.logger
+            compact_and_merge_schema(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
+          else
+            compact_and_merge_schema(merged_schema, candidate, a_position: position, b_position: "#{position}/all_of")
+          end
+        else
+          compact_and_merge_schema(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
+        end
+      else
+        unless schema.one_of.empty?
+          ::JsonSchema::Faker::Configuration.logger.info "compact one_of" if ::JsonSchema::Faker::Configuration.logger
+          compact_and_merge_schema(merged_schema, schema.one_of.first, a_position: position, b_position: "#{position}/one_of[0]")
+        end
+
+        unless schema.any_of.empty?
+          ::JsonSchema::Faker::Configuration.logger.info "compact any_of" if ::JsonSchema::Faker::Configuration.logger
+          compact_and_merge_schema(merged_schema, schema.any_of.first, a_position: position, b_position: "#{position}/any_of[0]")
+        end
       end
 
       ::JsonSchema::Faker::Configuration.logger.debug "compacted: #{merged_schema.inspect_schema}" if ::JsonSchema::Faker::Configuration.logger

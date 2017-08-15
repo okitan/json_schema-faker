@@ -103,7 +103,7 @@ require "json_schema/faker/util"
         { "properties" => { "a" => {}, "b" => { "minimum" => 20 }, "c" => {} } },
       ],
       # for any
-      "enum" => [ { "enum" => %w[ a b ] }, { "enum" => %w[ b c ] }, { "enum" => %w[ b ] } ],
+      "enum"  => [ { "enum" => %w[ a b ] }, { "enum" => %w[ b c ] }, { "enum" => %w[ b ] } ],
       "type" => [ { "type" => "string" }, { "type" => [ "integer", "string" ] }, { "type" => [ "string" ] } ],
       "allOf" => [
         { "allOf" => [ { "minimum" => 10 } ] },

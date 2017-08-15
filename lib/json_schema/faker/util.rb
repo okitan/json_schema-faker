@@ -5,15 +5,26 @@ class JsonSchema::Faker
     # umhhh maybe we don't need this...
     def compare_schema(a, b)
       if a.is_a?(::JsonSchema::Schema) && b.is_a?(::JsonSchema::Schema)
-        a.data == b.data
+        %i[ multiple_of min max min_exclusive max_exclusive
+          max_length min_length pattern
+          additional_items items max_items min_items unique_items
+          max_properties min_properties required additional_properties properties pattern_properties
+          enum type all_of any_of one_of not
+        ].all? {|k| compare_schema(a.__send__(k), b.__send__(k)) }
+      elsif a.is_a?(::Array) && b.is_a?(::Array)
+        return false unless a.size == b.size
+        a.zip(b).all? {|ai, bi| compare_schema(ai, bi) }
+      elsif a.is_a?(::Hash) && b.is_a?(::Hash)
+        return false unless a.keys.sort == b.keys.sort
+        a.keys.all? {|key| compare_schema(a[key], b[key]) }
       else
         a == b
       end
     end
 
     def take_unique_items(a, b)
-      a.select do |ai|
-        b.any? {|bi| compare_schema(ai, bi)}
+      a.select do |ae|
+        b.any? {|be| compare_schema(ae, be) }
       end
     end
 
@@ -21,7 +32,7 @@ class JsonSchema::Faker
       return a || b if a.nil? || b.nil?
 
       # deep copy and modify it
-      a = Marshal.load(Marshal.dump(a))
+      a = ::JsonSchema::Schema.new.tap {|s| s.copy_from(a) }
 
       # for numeric
       if a.multiple_of && b.multiple_of

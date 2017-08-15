@@ -100,9 +100,7 @@ module JsonSchema::Faker::Strategy
 
       # consider dependency
       depended_keys = object.keys & schema.dependencies.keys
-      if depended_keys.empty?
-        object
-      elsif depended_keys.all? {|key| schema.dependencies[key].is_a?(Array) }
+      if depended_keys.all? {|key| schema.dependencies[key].is_a?(Array) }
         # FIXME: circular dependency is not supported
         depended_keys.each.with_object(object) do |key, hash|
           schema.dependencies[key].each do |additional_key|

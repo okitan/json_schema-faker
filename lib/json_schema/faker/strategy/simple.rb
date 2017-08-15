@@ -252,7 +252,7 @@ module JsonSchema::Faker::Strategy
           end
         end
 
-        merged_schema = unless schema.one_of.empty? && schema.any_of.empty?
+        unless schema.one_of.empty? && schema.any_of.empty?
           ::JsonSchema::Faker::Configuration.logger.info "find from one_of and any_of which satiffy all_of" if ::JsonSchema::Faker::Configuration.logger
           one_of_candidate = schema.one_of.find do |s|
             s2 = take_logical_and_of_schema(s, all_of)
@@ -266,13 +266,13 @@ module JsonSchema::Faker::Strategy
 
           unless one_of_candidate || any_of_candidate
             ::JsonSchema::Faker::Configuration.logger.error "failed to find condition which satfisfy all_of in one_of and any_of" if ::JsonSchema::Faker::Configuration.logger
-            take_logical_and_of_schema(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
+            merged_schema = take_logical_and_of_schema(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
           else
-            take_logical_and_of_schema(merged_schema, one_of_candidate, a_position: position, b_position: "#{position}/one_of") if one_of_candidate
-            take_logical_and_of_schema(merged_schema, any_of_candidate, a_position: position, b_position: "#{position}/any_of") if any_of_candidate
+            merged_schema = take_logical_and_of_schema(merged_schema, one_of_candidate, a_position: position, b_position: "#{position}/one_of") if one_of_candidate
+            merged_schema = take_logical_and_of_schema(merged_schema, any_of_candidate, a_position: position, b_position: "#{position}/any_of") if any_of_candidate
           end
         else
-          take_logical_and_of_schema(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
+          merged_schema = take_logical_and_of_schema(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
         end
       else
         unless schema.one_of.empty?

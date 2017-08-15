@@ -22,7 +22,7 @@ module JsonSchema::Faker::Strategy
       ::JsonSchema::Faker::Configuration.logger.debug schema.inspect_schema if ::JsonSchema::Faker::Configuration.logger
       schema = compact_schema(schema, position: position)
 
-      return schema.default if schema.default
+      return schema.default if schema.default && schema.validate(schema.default).first
       return self.class.formats[schema.format].call(schema, hint: hint, position: position) if self.class.formats.has_key?(schema.format)
 
       if schema.not

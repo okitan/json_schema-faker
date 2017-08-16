@@ -22,7 +22,7 @@ module JsonSchema::Faker::Strategy
       ::JsonSchema::Faker::Configuration.logger.debug schema.inspect_schema if ::JsonSchema::Faker::Configuration.logger
       schema = compact_schema(schema, position: position)
 
-      return schema.default if schema.default
+      return schema.default if schema.default && schema.validate(schema.default).first
       return self.class.formats[schema.format].call(schema, hint: hint, position: position) if self.class.formats.has_key?(schema.format)
 
       if schema.not
@@ -100,19 +100,27 @@ module JsonSchema::Faker::Strategy
 
       # consider dependency
       depended_keys = object.keys & schema.dependencies.keys
-
-      # FIXME: circular dependency is not supported
-      depended_keys.each.with_object(object) do |key, hash|
-        dependency = schema.dependencies[key]
-
-        if dependency.is_a?(::JsonSchema::Schema)
-          # too difficult we just merge
-          hash.update(generate(schema.dependencies[key], hint: nil, position: "#{position}/dependencies/#{key}"))
-        else
-          dependency.each do |additional_key|
-            object[additional_key] = generate(schema.properties[additional_key], hint: hint, position: "#{position}/dependencies/#{key}/#{additional_key}") unless object.has_key?(additional_key)
+      if depended_keys.all? {|key| schema.dependencies[key].is_a?(Array) }
+        # FIXME: circular dependency is not supported
+        depended_keys.each.with_object(object) do |key, hash|
+          schema.dependencies[key].each do |additional_key|
+            hash[additional_key] = generate(schema.properties[additional_key], hint: hint, position: "#{position}/dependencies/#{key}/#{additional_key}") unless object.has_key?(additional_key)
           end
         end
+      else
+        ::JsonSchema::Faker::Configuration.logger.info "generate again because of dependended keys exists: #{depended_keys}" if ::JsonSchema::Faker::Configuration.logger
+
+        merged_schema = ::JsonSchema::Schema.new.tap {|s| s.copy_from(schema) }
+        depended_keys.each do |key|
+          dependency = schema.dependencies[key]
+          if dependency.is_a?(::JsonSchema::Schema)
+            merged_schema = compact_schema(take_logical_and_of_schema(merged_schema, dependency), position: position)
+          else
+            merged_schema.required = (merged_schema.required + dependency).uniq
+          end
+        end
+        merged_schema.dependencies = nil # XXX: recursive dependency will fail
+        generate_for_object(merged_schema, hint: hint, position: position)
       end
     end
 
@@ -248,7 +256,7 @@ module JsonSchema::Faker::Strategy
           end
         end
 
-        merged_schema = unless schema.one_of.empty? && schema.any_of.empty?
+        unless schema.one_of.empty? && schema.any_of.empty?
           ::JsonSchema::Faker::Configuration.logger.info "find from one_of and any_of which satiffy all_of" if ::JsonSchema::Faker::Configuration.logger
           one_of_candidate = schema.one_of.find do |s|
             s2 = take_logical_and_of_schema(s, all_of)
@@ -262,13 +270,13 @@ module JsonSchema::Faker::Strategy
 
           unless one_of_candidate || any_of_candidate
             ::JsonSchema::Faker::Configuration.logger.error "failed to find condition which satfisfy all_of in one_of and any_of" if ::JsonSchema::Faker::Configuration.logger
-            take_logical_and_of_schema(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
+            merged_schema = take_logical_and_of_schema(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
           else
-            take_logical_and_of_schema(merged_schema, one_of_candidate, a_position: position, b_position: "#{position}/one_of") if one_of_candidate
-            take_logical_and_of_schema(merged_schema, any_of_candidate, a_position: position, b_position: "#{position}/any_of") if any_of_candidate
+            merged_schema = take_logical_and_of_schema(merged_schema, one_of_candidate, a_position: position, b_position: "#{position}/one_of") if one_of_candidate
+            merged_schema = take_logical_and_of_schema(merged_schema, any_of_candidate, a_position: position, b_position: "#{position}/any_of") if any_of_candidate
           end
         else
-          take_logical_and_of_schema(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
+          merged_schema = take_logical_and_of_schema(merged_schema, all_of, a_position: position, b_position: "#{position}/all_of")
         end
       else
         unless schema.one_of.empty?

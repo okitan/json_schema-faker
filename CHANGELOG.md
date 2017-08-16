@@ -1,7 +1,16 @@
+## 0.5.2
+
+* Added
+  * support of schema dependency for JsonSchema::Faker::Strategy::Simple
+  * validate default and return only if valid
+* Fixed
+  * fixes bug of disruption in JsonSchema::Faker::Util.take_logical_and_of_schema
+  * fixes bug of not merged in JsonSchema::Faker::Strategy::Simple#compact_schema
+
 ## 0.5.1
 
 * Added
- * support for copying pattern in take_logical_and_of_schema
+  * support for copying pattern in take_logical_and_of_schema
 
 ## 0.5.0
 

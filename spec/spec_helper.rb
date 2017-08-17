@@ -34,7 +34,43 @@ RSpec.configure do |config|
 
   #config.warnings = true
 
-  config.order = :random
+  #config.order = :random
+
+  # TODO:
+  def complete_schema(schema)
+    schema = Marshal.load(Marshal.dump(schema))
+
+    if %w[ minimum maximum ].any? {|key| schema.has_key?(key) }
+      schema.merge("type" => "number")
+    elsif %w[ minLength maxLength pattern ].any? {|key| schema.has_key?(key) }
+      schema.merge("type" => "string")
+    elsif %w[ items minItems maxItems uniqueItems ].any? {|key| schema.has_key?(key)}
+      schema.merge("type" => "array").tap do |s|
+        if s["items"]
+          if s["items"].is_a?(Array)
+            s["items"].map! {|e| complete_schema(e) }
+          elsif s["items"].is_a?(::JsonSchema::Schema)
+            s["items"] = complete_schema(e)
+          end
+        end
+      end
+    elsif %w[ minProperties maxProperties required properties additionalProperties patternProperties dependencies ].any? {|key| schema.has_key?(key) }
+      schema.merge("type" => "object").tap do |s|
+        if s["properties"]
+          s["properties"].values.map! {|e| complete_schema(e) }
+          s["required"] = s["properties"].keys unless s["required"]
+        end
+      end
+    elsif %w[ oneOf anyOf allOf ].any? {|key| schema.has_key?(key) }
+      schema.tap do |s|
+        s["oneOf"].map! {|e| complete_schema(e) } if s["oneOf"]
+        s["anyOf"].map! {|e| complete_schema(e) } if s["anyOf"]
+        s["allOf"].map! {|e| complete_schema(e) } if s["allOf"]
+      end
+    else
+      schema
+    end
+  end
 
   Kernel.srand config.seed
 end

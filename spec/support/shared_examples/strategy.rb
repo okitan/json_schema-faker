@@ -57,6 +57,10 @@ RSpec.shared_examples "strategy" do
             { "type" => "integer" },
             { "maximum" => -10000 },
           ]},
+          "all_of_and_one_of" => { "allOf" => [
+            { "oneOf" => [ { "enum" => [ "a" ]}, { "enum" => [ "b" ]} ] },
+            { "oneOf" => [ { "enum" => [ "b" ]} ] },
+          ]},
           # not
           "not_be_values" => { "enum" => [ "a", "b" ], "not" => { "enum" => [ "a" ] } },
         }
@@ -90,6 +94,16 @@ RSpec.shared_examples "strategy" do
         end
       end
     end
+
+    context "for wip" do
+      it_behaves_like "generating data from properties which passes validation" do
+        let(:properties) do
+          {
+            # you can write particular property here
+          }
+        end
+      end
+    end
   end
 
   context "against json-schema-org test suite schema" do
@@ -100,19 +114,23 @@ RSpec.shared_examples "strategy" do
       false
     end
 
+    def complete_schema_from_filename(schema, file)
+      schema
+    end
+
     Dir["suite/tests/draft4/**/*.json"].sort.each do |file|
-      next if file == "suite/tests/draft4/definitions.json" # json shema does not support resolve ref over http
+      next if file == "suite/tests/draft4/definitions.json" # json_schema does not support resolve ref over http
       next if file == "suite/tests/draft4/ref.json"         # they should be root schema and when I do it, faker will always return {}
       next if file == "suite/tests/draft4/refRemote.json"   # json shema does not support resolve ref over http
 
-      fcontext "from suite #{file}" do
+      context "from suite #{file}" do
         tests = JSON.parse(File.read(file))
 
         tests.each.with_index do |test, i|
           context "[#{i}] (#{test["description"]})", test: "#{file}[#{i}]", skip: skip?(file, i) do
             it_behaves_like "generating data from properties which passes validation" do
               let(:properties) do
-                { "#{file}[#{i}]" => test["schema"] }
+                { "#{file}[#{i}]" => complete_schema_from_filename(test["schema"], file) }
               end
             end
           end

@@ -1,3 +1,4 @@
+require "json_schema/faker/formats"
 require "json_schema/faker/util"
 
 module JsonSchema::Faker::Strategy
@@ -6,7 +7,14 @@ module JsonSchema::Faker::Strategy
 
     class << self
       def formats
-        @formats ||= {}
+        @formats ||= {
+          "date-time" => ::JsonSchema::Faker::Formats.method(:date_time),
+          "email"     => ::JsonSchema::Faker::Formats.method(:email),
+          "hostname"  => ::JsonSchema::Faker::Formats.method(:hostname),
+          "ipv4"      => ::JsonSchema::Faker::Formats.method(:ipv4),
+          "ipv6"      => ::JsonSchema::Faker::Formats.method(:ipv6),
+          "uri"       => ::JsonSchema::Faker::Formats.method(:uri),
+        }
       end
     end
 

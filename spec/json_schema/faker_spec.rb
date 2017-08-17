@@ -33,7 +33,7 @@ RSpec.describe JsonSchema::Faker do
 
     it "works with hint" do
       ex = { "a" => "aa", "c" => { "a" => "aa" } }
-      expect(described_class.new(schema).generate(hint: { example: ex })).to eq("a" => "aa", "b" => "b", "c" => { "a" => "aa", "b" => "b"})
+      expect(described_class.new(schema).generate(hint: { example: ex })).to eq("a" => "aa", "b" => "b", "c" => { "a" => "aa", "b" => "b" })
     end
   end
 

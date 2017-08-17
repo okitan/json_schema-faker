@@ -1,3 +1,9 @@
+## 0.6.0
+
+* Added
+ * support of default faker against format
+ * support for copying format in take_logical_and_of_schema
+
 ## 0.5.2
 
 * Added

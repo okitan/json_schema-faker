@@ -232,6 +232,14 @@ class JsonSchema::Faker
           a.not = b.not
         end
       end
+      # semantic keyword
+      if b.format
+        if a.format
+          ::JsonSchema::Faker::Configuration.logger.warn "not support merging format" if ::JsonSchema::Faker::Configuration.logger
+        else
+          a.format = b.format
+        end
+      end
 
       a
     end

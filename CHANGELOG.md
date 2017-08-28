@@ -1,3 +1,8 @@
+## 0.6.1
+
+* Fixed
+ * hint-example descending
+
 ## 0.6.0
 
 * Added

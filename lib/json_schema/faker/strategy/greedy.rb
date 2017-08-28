@@ -8,7 +8,7 @@ module JsonSchema::Faker::Strategy
         hint[:example].each.with_object({}) do |(key, value), hash|
           if value.is_a?(Hash)
             if schema.properties.has_key?(key)
-              hash[key] =  generate(schema.properties[key], hint: { example: hint[:example][key] }, position: "#{position}/#{key}")
+              hash[key] = generate(schema.properties[key], hint: { example: hint[:example][key] }, position: "#{position}/#{key}")
             else
               # TODO: support pattern properties
               hash[key] = value

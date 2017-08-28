@@ -18,6 +18,19 @@ module JsonSchema::Faker::Strategy
       end
     end
 
+    def hint_descend(hint, key)
+      if hint && hint[:example]
+        hint_without_example = hint.reject{|k,v|k == :example}
+        if hint[:example][key]
+          hint_without_example.merge(example: hint[:example][key])
+        else
+          hint_without_example
+        end
+      else
+        hint
+      end
+    end
+
     def call(schema, hint: nil, position:)
       if ::JsonSchema::Faker::Configuration.logger
         ::JsonSchema::Faker::Configuration.logger.debug "current position: #{position}"
@@ -56,7 +69,7 @@ module JsonSchema::Faker::Strategy
         hint[:example].each.with_object({}) do |(key, value), hash|
           if value.is_a?(Hash)
             if schema.properties.has_key?(key)
-              hash[key] =  generate(schema.properties[key], hint: { example: hint[:example][key] }, position: "#{position}/#{key}")
+              hash[key] = generate(schema.properties[key], hint: { example: hint[:example][key] }, position: "#{position}/#{key}")
             else
               # TODO: support pattern properties
               hash[key] = value
@@ -75,7 +88,7 @@ module JsonSchema::Faker::Strategy
         required_length = schema.min_properties || keys.length
 
         (keys - object.keys).each.with_object(object) do |key, hash|
-          hash[key] = generate(schema.properties[key], hint: hint, position: "#{position}/#{key}")
+          hash[key] = generate(schema.properties[key], hint: hint_descend(hint, key), position: "#{position}/#{key}")
         end
       else
         required_length = schema.min_properties || schema.max_properties || 0
@@ -84,7 +97,7 @@ module JsonSchema::Faker::Strategy
         keys -= hint[:not_have_keys] if hint && hint[:not_have_keys]
 
         keys.first(required_length).each.with_object(object) do |key, hash|
-          hash[key] = generate(schema.properties[key], hint: hint, position: "#{position}/#{key}")
+          hash[key] = generate(schema.properties[key], hint: hint_descend(hint, key), position: "#{position}/#{key}")
         end
       end
 
@@ -93,10 +106,10 @@ module JsonSchema::Faker::Strategy
         (required_length - object.keys.length).times.each.with_object(object) do |i, hash|
           if schema.pattern_properties.empty?
             key = (schema.properties.keys - object.keys).first
-            hash[key] = generate(schema.properties[key], hint: hint, position: "#{position}/#{key}")
+            hash[key] = generate(schema.properties[key], hint: hint_descend(hint, key), position: "#{position}/#{key}")
           else
             name = ::Pxeger.new(schema.pattern_properties.keys.first).generate
-            hash[name] = generate(schema.pattern_properties.values.first, hint: hint, position: "#{position}/#{name}")
+            hash[name] = generate(schema.pattern_properties.values.first, hint: hint_descend(hint, name), position: "#{position}/#{name}")
           end
         end
       else
@@ -112,7 +125,7 @@ module JsonSchema::Faker::Strategy
         # FIXME: circular dependency is not supported
         depended_keys.each.with_object(object) do |key, hash|
           schema.dependencies[key].each do |additional_key|
-            hash[additional_key] = generate(schema.properties[additional_key], hint: hint, position: "#{position}/dependencies/#{key}/#{additional_key}") unless object.has_key?(additional_key)
+            hash[additional_key] = generate(schema.properties[additional_key], hint: hint_descend(hint, additional_key), position: "#{position}/dependencies/#{key}/#{additional_key}") unless object.has_key?(additional_key)
           end
         end
       else

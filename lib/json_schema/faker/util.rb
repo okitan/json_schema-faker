@@ -105,7 +105,7 @@ class JsonSchema::Faker
         a.additonal_items = false
       else
         if b.additional_items.is_a?(::JsonSchema::Schema)
-          if a.additional_items.is_a?(::JsonSchem::Schema)
+          if a.additional_items.is_a?(::JsonSchema::Schema)
             ::JsonSchema::Faker::Configuration.logger.warn "not support merging additionalItems" if ::JsonSchema::Faker::Configuration.logger
           else
             a.additional_items = b.additional_items
@@ -157,7 +157,7 @@ class JsonSchema::Faker
         a.additional_properties = false
       else
         if b.additional_properties.is_a?(::JsonSchema::Schema)
-          if a.additional_properties.is_a?(::JsonSchem::Schema)
+          if a.additional_properties.is_a?(::JsonSchema::Schema)
             ::JsonSchema::Faker::Configuration.logger.warn "not support merging additionalProperties" if ::JsonSchema::Faker::Configuration.logger
           else
             a.additional_properties = b.additional_properties

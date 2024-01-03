@@ -16,7 +16,7 @@ class JsonSchema::Faker
     def email(schema, hint: nil, position: nil)
       raise "invalid schema given" unless schema.format == "email"
 
-      (hint && hint[:example]) || ::Faker::Internet.safe_email
+      (hint && hint[:example]) || ::Faker::Internet.email
     end
 
     # https://tools.ietf.org/html/rfc2606
@@ -53,7 +53,7 @@ class JsonSchema::Faker
       raise "invalid schema given" unless schema.format == "uri"
 
       # TODO: urn
-      (hint && hint[:example]) || ::Faker::Internet.url(safe_domain)
+      (hint && hint[:example]) || ::Faker::Internet.url(host: safe_domain)
     end
 
     protected def safe_domain

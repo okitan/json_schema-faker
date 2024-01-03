@@ -1,3 +1,8 @@
+## 0.6.3
+
+- Fixed
+  - #18
+
 ## 0.6.2
 
 - Fixed
@@ -6,13 +11,13 @@
 ## 0.6.1
 
 - Fixed
-- hint-example descending
+  - hint-example descending
 
 ## 0.6.0
 
 - Added
-- support of default faker against format
-- support for copying format in take_logical_and_of_schema
+  - support of default faker against format
+  - support for copying format in take_logical_and_of_schema
 
 ## 0.5.2
 
